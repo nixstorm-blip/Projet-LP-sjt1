@@ -1,0 +1,15 @@
+# Fichiers compilés
+*.o
+*.exe
+mediatheque
+
+# Base de données locale
+data/*.db
+
+# Fichiers temporaires
+*.tmp
+*.log
+
+# IDE
+.vscode/
+.idea/
