@@ -1,8 +1,9 @@
+#pragma once
 #include <iostream>
 #include <string>
+#include "Mediatheque.cpp"
 
 using namespace std;
-class Mediatheque;
 
 class Users{
 
@@ -52,13 +53,33 @@ public : Mediatheque* getMediatheque(){
 }
 
 public : void setMediatheque(Mediatheque* mediatheque){
+    if (this->mediatheque == mediatheque){
+        return;
+    }
+    if (this->mediatheque != nullptr){
+        this->mediatheque->setUser(nullptr);
+    }
+    if (mediatheque != nullptr && mediatheque->getUser() != nullptr){
+        mediatheque->getUser()->mediatheque = nullptr;
+    }
     this->mediatheque = mediatheque;
+    if (mediatheque != nullptr){
+        mediatheque->setUser(this);
+    }
+}
+
+public : bool verifierMdp(string mdp){
+    return this->mdp == mdp;
+}
+
+public : string afficher(){
+    return toString();
 }
 
 public : string toString(){
     return "Users [id=" + to_string(this->id)
         + ", login=" + this->login
-        + ", mediatheque=" + (this->mediatheque != nullptr ? "oui" : "aucune")
+        + ", mediatheque=" + (this->mediatheque != nullptr ? this->mediatheque->getNom() : "aucune")
         + "]";
 }
 
