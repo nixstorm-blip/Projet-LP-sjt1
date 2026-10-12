@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include "Tag.cpp"
+#include "Format.cpp"
 
 using namespace std;
 class ElementMediatheque;
@@ -13,6 +15,8 @@ private : string titre,annee,note,commentaire;
 private : bool possede;
 
 vector<ElementMediatheque*> elements;
+vector<Tag*> tags;
+Format* format = nullptr;
 
 
 public : Media(int id, string titre, string annee, string note, string commentaire, bool possede){
@@ -26,7 +30,19 @@ public : Media(int id, string titre, string annee, string note, string commentai
 
 }
 
-public : virtual ~Media(){}
+// Copie interdite : deux copies détruiraient les mêmes tags
+public : Media(const Media&) = delete;
+public : Media& operator=(const Media&) = delete;
+
+// Un tag n'appartient qu'à un seul media : le media les détruit avec lui
+public : virtual ~Media(){
+    for (Tag* tag : this->tags){
+        delete tag;
+    }
+    if (this->format != nullptr){
+        this->format->removeMedia(this);
+    }
+}
 
 public : int getId(){
     return this->id;
@@ -94,6 +110,55 @@ public : void removeElement(ElementMediatheque* element){
     this->elements.erase(remove(this->elements.begin(), this->elements.end(), element), this->elements.end());
 }
 
+public : vector<Tag*> getTags(){
+    return this->tags;
+}
+
+// Le media prend possession du tag
+public : void ajouterTag(Tag* tag){
+    if (tag == nullptr || find(this->tags.begin(), this->tags.end(), tag) != this->tags.end()){
+        return;
+    }
+    if (tag->getMedia() != nullptr && tag->getMedia() != this){
+        tag->getMedia()->detacherTag(tag);
+    }
+    tag->setMedia(this);
+    this->tags.push_back(tag);
+}
+
+public : void supprimerTag(string nom){
+    for (Tag* tag : this->tags){
+        if (tag->getNom() == nom){
+            this->tags.erase(remove(this->tags.begin(), this->tags.end(), tag), this->tags.end());
+            delete tag;
+            return;
+        }
+    }
+}
+
+// Retire le tag sans le détruire (utilisé quand il change de media)
+public : void detacherTag(Tag* tag){
+    this->tags.erase(remove(this->tags.begin(), this->tags.end(), tag), this->tags.end());
+    tag->setMedia(nullptr);
+}
+
+public : Format* getFormat(){
+    return this->format;
+}
+
+public : void setFormat(Format* format){
+    if (this->format == format){
+        return;
+    }
+    if (this->format != nullptr){
+        this->format->removeMedia(this);
+    }
+    this->format = format;
+    if (format != nullptr){
+        format->addMedia(this);
+    }
+}
+
 public : virtual string toString(){
     return "Media [id=" + to_string(this->id)
         + ", titre=" + this->titre
@@ -101,6 +166,8 @@ public : virtual string toString(){
         + ", note=" + this->note
         + ", commentaire=" + this->commentaire
         + ", possede=" + (this->possede ? "oui" : "non")
+        + ", format=" + (this->format != nullptr ? this->format->getNomFormat() : "aucun")
+        + ", nbTags=" + to_string(this->tags.size())
         + ", nbMediatheques=" + to_string(this->elements.size())
         + "]";
 }
