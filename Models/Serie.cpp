@@ -1,3 +1,4 @@
+#pragma once
 #include "Media.cpp"
 class Serie :public Media{
     private:
@@ -48,21 +49,5 @@ string toString() override {
         + to_string(nombreEpisodes);
 }
 
-}; 
-int main() {
-    Serie serie(
-        1,
-        "Breaking Bad",
-        "2008",
-        "5",
-        "Excellente serie",
-        true,
-        5,
-        62
-    );
-
-    cout << serie.toString() << endl;
-
-    return 0;
-}
+};
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <vector>
 #include "Mediatheque.cpp"
 
 using namespace std;
@@ -11,6 +12,9 @@ private : int id;
 private : string login,mdp;
 
 Mediatheque* mediatheque;
+
+// Liste de tous les utilisateurs
+inline static vector<Users*> users;
 
 
 public : Users(int id, string login, string mdp){
@@ -83,11 +87,34 @@ public : string toString(){
         + "]";
 }
 
+public : void creer(){
+    users.push_back(this);
+}
 
+public : static Users* lire(int id){
+    for (Users* u : users){
+        if (u->getId() == id){
+            return u;
+        }
+    }
+    return nullptr;
+}
 
+public : static vector<Users*> lireTous(){
+    return users;
+}
 
+public : void modifier(string login, string mdp){
+    this->login = login;
+    this->mdp = mdp;
+}
 
-
-
-
+public : void supprimer(){
+    for (int i = 0; i < users.size(); i++){
+        if (users[i] == this){
+            users.erase(users.begin() + i);
+            return;
+        }
+    }
+}
 };

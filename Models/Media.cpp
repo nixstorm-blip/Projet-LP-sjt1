@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <vector>
@@ -30,11 +31,9 @@ public : Media(int id, string titre, string annee, string note, string commentai
 
 }
 
-// Copie interdite : deux copies détruiraient les mêmes tags
 public : Media(const Media&) = delete;
 public : Media& operator=(const Media&) = delete;
 
-// Un tag n'appartient qu'à un seul media : le media les détruit avec lui
 public : virtual ~Media(){
     for (Tag* tag : this->tags){
         delete tag;
@@ -114,7 +113,6 @@ public : vector<Tag*> getTags(){
     return this->tags;
 }
 
-// Le media prend possession du tag
 public : void ajouterTag(Tag* tag){
     if (tag == nullptr || find(this->tags.begin(), this->tags.end(), tag) != this->tags.end()){
         return;
@@ -136,7 +134,6 @@ public : void supprimerTag(string nom){
     }
 }
 
-// Retire le tag sans le détruire (utilisé quand il change de media)
 public : void detacherTag(Tag* tag){
     this->tags.erase(remove(this->tags.begin(), this->tags.end(), tag), this->tags.end());
     tag->setMedia(nullptr);
