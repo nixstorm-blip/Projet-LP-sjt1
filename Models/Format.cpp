@@ -38,7 +38,6 @@ public : void setNomFormat(string nomFormat){
     this->nomFormat = nomFormat;
 }
 
-// Le lien est géré par Media::setFormat
 public : vector<Media*> getMedias(){
     return this->medias;
 }
