@@ -11,7 +11,7 @@ public:
 
 	~Album() override = default;
 
-	string afficher() {
+	string afficher() override {
 		return "Album [id=" + to_string(getId())
 			+ ", titre=" + getTitre()
 			+ ", annee=" + getAnnee()
@@ -19,9 +19,5 @@ public:
 			+ ", commentaire=" + getCommentaire()
 			+ ", possede=" + (getPossede() ? "oui" : "non")
 			+ "]";
-	}
-
-	string toString() override {
-		return afficher();
 	}
 };

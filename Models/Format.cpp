@@ -52,7 +52,7 @@ public : void removeMedia(Media* media){
     this->medias.erase(remove(this->medias.begin(), this->medias.end(), media), this->medias.end());
 }
 
-public : string toString(){
+public : string afficher(){
     return "Format [id=" + to_string(this->id)
         + ", nomFormat=" + this->nomFormat
         + ", nbMedias=" + to_string(this->medias.size())

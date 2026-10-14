@@ -32,7 +32,7 @@ public:
         this->isan = isan;
     }
 
-    string afficher() {
+    string afficher() override {
         return "Films [id=" + to_string(getId())
             + ", titre=" + getTitre()
             + ", annee=" + getAnnee()
@@ -42,9 +42,5 @@ public:
             + ", duree=" + to_string(duree)
             + ", isan=" + isan
             + "]";
-    }
-
-    string toString() override {
-        return afficher();
     }
 };

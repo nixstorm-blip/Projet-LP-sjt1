@@ -33,7 +33,7 @@ public:
 		this->isbn = isbn;
 	}
 
-	string toString() override {
+	string afficher() override {
 		return "Livre [id=" + to_string(getId())
 			+ ", titre=" + getTitre()
 			+ ", annee=" + getAnnee()

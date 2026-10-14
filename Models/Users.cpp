@@ -77,10 +77,6 @@ public : bool verifierMdp(string mdp){
 }
 
 public : string afficher(){
-    return toString();
-}
-
-public : string toString(){
     return "Users [id=" + to_string(this->id)
         + ", login=" + this->login
         + ", mediatheque=" + (this->mediatheque != nullptr ? this->mediatheque->getNom() : "aucune")
