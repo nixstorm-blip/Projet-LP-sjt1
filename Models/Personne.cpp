@@ -70,7 +70,7 @@ public : void removeOeuvre(Media* media){
     this->oeuvres.erase(remove(this->oeuvres.begin(), this->oeuvres.end(), media), this->oeuvres.end());
 }
 
-public : string toString(){
+public : string afficher(){
     return "Personne [id=" + to_string(this->id)
         + ", nom=" + this->nom
         + ", prenom=" + this->prenom

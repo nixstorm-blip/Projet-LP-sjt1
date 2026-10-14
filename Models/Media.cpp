@@ -196,7 +196,7 @@ public : void retirerCreateur(Personne* personne){
     personne->removeOeuvre(this);
 }
 
-public : virtual string toString(){
+public : virtual string afficher(){
     return "Media [id=" + to_string(this->id)
         + ", titre=" + this->titre
         + ", annee=" + this->annee

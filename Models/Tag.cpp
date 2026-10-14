@@ -54,7 +54,7 @@ public : void setMedia(Media* media){
     this->media = media;
 }
 
-public : string toString(){
+public : string afficher(){
     return "Tag [id=" + to_string(this->id)
         + ", nom=" + this->nom
         + ", description=" + this->description

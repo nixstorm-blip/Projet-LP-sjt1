@@ -31,7 +31,7 @@ public:
 		this->plateforme = plateforme;
 	}
 
-	string afficher() {
+	string afficher() override {
 		return "JeuVideo [id=" + to_string(getId())
 			+ ", titre=" + getTitre()
 			+ ", annee=" + getAnnee()
@@ -41,9 +41,5 @@ public:
 			+ ", editeur=" + editeur
 			+ ", plateforme=" + plateforme
 			+ "]";
-	}
-
-	string toString() override {
-		return afficher();
 	}
 };

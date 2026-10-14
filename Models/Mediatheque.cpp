@@ -98,7 +98,7 @@ public : void supprimerMedia(int id){
     }
 }
 
-public : string toString(){
+public : string afficher(){
     return "Mediatheque [id=" + to_string(this->id)
         + ", nom=" + this->nom
         + ", description=" + this->description
