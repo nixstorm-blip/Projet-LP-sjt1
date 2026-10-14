@@ -7,7 +7,7 @@
 #include "Format.cpp"
 
 using namespace std;
-class ElementMediatheque;
+class Mediatheque;
 
 class Media{
 
@@ -15,7 +15,7 @@ private : int id;
 private : string titre,annee,note,commentaire;
 private : bool possede;
 
-vector<ElementMediatheque*> elements;
+vector<Mediatheque*> mediatheques;
 vector<Tag*> tags;
 Format* format = nullptr;
 
@@ -91,22 +91,18 @@ public : void setPossede(bool possede){
     this->possede = possede;
 }
 
-public : vector<ElementMediatheque*> getElements(){
-    return this->elements;
+public : vector<Mediatheque*> getMediatheques(){
+    return this->mediatheques;
 }
 
-public : void setElements(vector<ElementMediatheque*> elements){
-    this->elements = elements;
-}
-
-public : void addElement(ElementMediatheque* element){
-    if (find(this->elements.begin(), this->elements.end(), element) == this->elements.end()){
-        this->elements.push_back(element);
+public : void ajouterMediatheque(Mediatheque* mediatheque){
+    if (find(this->mediatheques.begin(), this->mediatheques.end(), mediatheque) == this->mediatheques.end()){
+        this->mediatheques.push_back(mediatheque);
     }
 }
 
-public : void removeElement(ElementMediatheque* element){
-    this->elements.erase(remove(this->elements.begin(), this->elements.end(), element), this->elements.end());
+public : void retirerMediatheque(Mediatheque* mediatheque){
+    this->mediatheques.erase(remove(this->mediatheques.begin(), this->mediatheques.end(), mediatheque), this->mediatheques.end());
 }
 
 public : vector<Tag*> getTags(){
@@ -165,7 +161,7 @@ public : virtual string toString(){
         + ", possede=" + (this->possede ? "oui" : "non")
         + ", format=" + (this->format != nullptr ? this->format->getNomFormat() : "aucun")
         + ", nbTags=" + to_string(this->tags.size())
-        + ", nbMediatheques=" + to_string(this->elements.size())
+        + ", nbMediatheques=" + to_string(this->mediatheques.size())
         + "]";
 }
 
