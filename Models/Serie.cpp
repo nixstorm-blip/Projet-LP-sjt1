@@ -1,68 +1,54 @@
+#ifndef MEDIATHEQUE_SERIE_CPP
+#define MEDIATHEQUE_SERIE_CPP
+
 #include "Media.cpp"
-class Serie :public Media{
-    private:
+
+#include <stdexcept>
+#include <string>
+
+class Serie : public Media {
+private:
     int nombreSaisons;
     int nombreEpisodes;
 
-    public:
-    Serie(int id, string titre,string annee, string note,string commentaire,bool possede, int nombreSaisons,int nombreEpisodes)
-    :Media(id,titre,annee,note,commentaire,possede),
-    nombreSaisons(nombreSaisons),
-    nombreEpisodes(nombreEpisodes)
-    {
-
-    }
- int getNombreSaisons() const {
-    return nombreSaisons;
- }
- 
-  void setNombreSaisons(int nombre){
-    if (nombre < 0){
-        throw std::invalid_argument(
-            "Le nombre de saisons ne peut pas etre negatif"
-        );
+public:
+    Serie(int id, std::string titre, std::string annee, std::string note,
+          std::string commentaire, bool possede, int nombreSaisons,
+          int nombreEpisodes)
+        : Media(id, std::move(titre), std::move(annee), std::move(note),
+                std::move(commentaire), possede),
+          nombreSaisons(nombreSaisons), nombreEpisodes(nombreEpisodes) {
+        if (nombreSaisons < 0 || nombreEpisodes < 0) {
+            throw std::invalid_argument("Les nombres de saisons et d'épisodes ne peuvent pas être négatifs.");
+        }
     }
 
-    nombreSaisons=nombre;
-  }
-
-
- int getNombreEpisodes()const {
-    return nombreEpisodes;
- }
-
- void setnombreEpisodes(int nombre){
-    if(nombre <0 ){
-        throw std::invalid_argument(
-            "le nombres d episodes ne doit pas etre negatif "
-        );
+    int getNombreSaisons() const { return nombreSaisons; }
+    void setNombreSaisons(int nombre) {
+        if (nombre < 0) throw std::invalid_argument("Le nombre de saisons ne peut pas être négatif.");
+        nombreSaisons = nombre;
     }
-    nombreEpisodes=nombre;
- }
 
-string toString() override {
-    return Media::toString()
-        + "\nNombre de saisons : "
-        + to_string(nombreSaisons)
-        + "\nNombre d'episodes : "
-        + to_string(nombreEpisodes);
-}
+    int getNombreEpisodes() const { return nombreEpisodes; }
+    void setNombreEpisodes(int nombre) {
+        if (nombre < 0) throw std::invalid_argument("Le nombre d'épisodes ne peut pas être négatif.");
+        nombreEpisodes = nombre;
+    }
+    // Alias temporaire pour préserver la compatibilité avec l'ancien nom.
+    void setnombreEpisodes(int nombre) { setNombreEpisodes(nombre); }
 
-}; 
-int main() {
-    Serie serie(
-        1,
-        "Breaking Bad",
-        "2008",
-        "5",
-        "Excellente serie",
-        true,
-        5,
-        62
-    );
+    std::string toString() override {
+        return "Serie [id=" + std::to_string(getId())
+            + ", titre=" + getTitre()
+            + ", annee=" + getAnnee()
+            + ", note=" + getNote()
+            + ", commentaire=" + getCommentaire()
+            + ", possede=" + (getPossede() ? "oui" : "non")
+            + ", nombreSaisons=" + std::to_string(nombreSaisons)
+            + ", nombreEpisodes=" + std::to_string(nombreEpisodes)
+            + "]";
+    }
+};
 
-    cout << serie.toString() << endl;
-
-    return 0;
-}
+#endif
 

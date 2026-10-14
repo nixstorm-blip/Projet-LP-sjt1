@@ -1,4 +1,9 @@
+#ifndef MEDIATHEQUE_FILMS_CPP
+#define MEDIATHEQUE_FILMS_CPP
+
 #include "Media.cpp"
+
+#include <stdexcept>
 
 class Films : public Media {
 private:
@@ -9,7 +14,9 @@ public:
     Films(int id, std::string titre, std::string annee, std::string note,
           std::string commentaire, bool possede, int duree, std::string isan)
         : Media(id, titre, annee, note, commentaire, possede),
-          duree(duree), isan(isan) {}
+                    duree(duree), isan(isan) {
+                if (duree < 0) throw std::invalid_argument("La durée du film ne peut pas être négative.");
+        }
 
     ~Films() override = default;
 
@@ -45,3 +52,5 @@ public:
         return afficher();
     }
 };
+
+#endif

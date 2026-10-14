@@ -1,108 +1,77 @@
-#include <iostream>
+#ifndef MEDIATHEQUE_MEDIA_CPP
+#define MEDIATHEQUE_MEDIA_CPP
+
 #include <string>
+#include <utility>
 #include <vector>
-#include <algorithm>
 
-using namespace std;
-class ElementMediatheque;
+class Mediatheque;
+class Personne;
+class Liste;
+class Franchise;
 
-class Media{
+class Media {
+private:
+    int id;
+    std::string titre;
+    std::string annee;
+    std::string note;
+    std::string commentaire;
+    bool possede;
 
-private : int id;
-private : string titre,annee,note,commentaire;
-private : bool possede;
+    // Pointeurs non propriétaires : les objets sont possédés par le programme.
+    std::vector<Mediatheque*> mediatheques;
+    std::vector<Personne*> personnes;
+    std::vector<Liste*> listes;
+    std::vector<Franchise*> franchises;
 
-vector<ElementMediatheque*> elements;
+    friend class Mediatheque;
+    friend class Personne;
+    friend class Liste;
+    friend class Franchise;
 
+public:
+    Media(int id, std::string titre, std::string annee, std::string note,
+          std::string commentaire, bool possede)
+        : id(id), titre(std::move(titre)), annee(std::move(annee)),
+          note(std::move(note)), commentaire(std::move(commentaire)),
+          possede(possede) {}
 
-public : Media(int id, string titre, string annee, string note, string commentaire, bool possede){
+    virtual ~Media() = default;
+    Media(const Media&) = delete;
+    Media& operator=(const Media&) = delete;
 
-        this->id = id;
-        this->titre = titre;
-        this->annee = annee;
-        this->note = note;
-        this->commentaire = commentaire;
-        this->possede = possede;
+    int getId() const { return id; }
+    void setId(int valeur) { id = valeur; }
+    std::string getTitre() const { return titre; }
+    void setTitre(std::string valeur) { titre = std::move(valeur); }
+    std::string getAnnee() const { return annee; }
+    void setAnnee(std::string valeur) { annee = std::move(valeur); }
+    std::string getNote() const { return note; }
+    void setNote(std::string valeur) { note = std::move(valeur); }
+    std::string getCommentaire() const { return commentaire; }
+    void setCommentaire(std::string valeur) { commentaire = std::move(valeur); }
+    bool getPossede() const { return possede; }
+    void setPossede(bool valeur) { possede = valeur; }
 
-}
+    const std::vector<Mediatheque*>& getMediatheques() const { return mediatheques; }
+    const std::vector<Personne*>& getPersonnes() const { return personnes; }
+    const std::vector<Liste*>& getListes() const { return listes; }
 
-public : virtual ~Media(){}
-
-public : int getId(){
-    return this->id;
-}
-
-public : void setId(int id){
-    this->id = id;
-}
-
-public : string getTitre(){
-    return this->titre;
-}
-
-public : void setTitre(string titre){
-    this->titre = titre;
-}
-
-public : string getAnnee(){
-    return this->annee;
-}
-
-public : void setAnnee(string annee){
-    this->annee = annee;
-}
-
-public : string getNote(){
-    return this->note;
-}
-
-public : void setNote(string note){
-    this->note = note;
-}
-
-public : string getCommentaire(){
-    return this->commentaire;
-}
-
-public : void setCommentaire(string commentaire){
-    this->commentaire = commentaire;
-}
-
-public : bool getPossede(){
-    return this->possede;
-}
-
-public : void setPossede(bool possede){
-    this->possede = possede;
-}
-
-public : vector<ElementMediatheque*> getElements(){
-    return this->elements;
-}
-
-public : void setElements(vector<ElementMediatheque*> elements){
-    this->elements = elements;
-}
-
-public : void addElement(ElementMediatheque* element){
-    if (find(this->elements.begin(), this->elements.end(), element) == this->elements.end()){
-        this->elements.push_back(element);
+    virtual std::string toString() {
+        return "Media [id=" + std::to_string(id)
+            + ", titre=" + titre
+            + ", annee=" + annee
+            + ", note=" + note
+            + ", commentaire=" + commentaire
+            + ", possede=" + (possede ? "oui" : "non")
+            + ", nbMediatheques=" + std::to_string(mediatheques.size())
+            + ", nbPersonnes=" + std::to_string(personnes.size())
+            + ", nbListes=" + std::to_string(listes.size())
+            + ", nbFranchises=" + std::to_string(franchises.size())
+            + "]";
     }
-}
-
-public : void removeElement(ElementMediatheque* element){
-    this->elements.erase(remove(this->elements.begin(), this->elements.end(), element), this->elements.end());
-}
-
-public : virtual string toString(){
-    return "Media [id=" + to_string(this->id)
-        + ", titre=" + this->titre
-        + ", annee=" + this->annee
-        + ", note=" + this->note
-        + ", commentaire=" + this->commentaire
-        + ", possede=" + (this->possede ? "oui" : "non")
-        + ", nbMediatheques=" + to_string(this->elements.size())
-        + "]";
-}
-
 };
+
+#endif
+    

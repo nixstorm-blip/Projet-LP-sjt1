@@ -1,3 +1,6 @@
+#ifndef MEDIATHEQUE_ALBUM_CPP
+#define MEDIATHEQUE_ALBUM_CPP
+
 #include "Media.cpp"
 
 class Album : public Media {
@@ -35,3 +38,5 @@ public:
 		return afficher();
 	}
 };
+
+#endif

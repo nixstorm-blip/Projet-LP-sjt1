@@ -1,3 +1,6 @@
+#ifndef MEDIATHEQUE_LIVRE_CPP
+#define MEDIATHEQUE_LIVRE_CPP
+
 #include "Media.cpp"
 
 class Livre : public Media {
@@ -42,3 +45,5 @@ public:
 			+ "]";
 	}
 };
+
+#endif

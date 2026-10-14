@@ -1,100 +1,60 @@
-#include <iostream>
-#include <string>
-#include <vector>
+#ifndef MEDIATHEQUE_MEDIATHEQUE_CPP
+#define MEDIATHEQUE_MEDIATHEQUE_CPP
+
+#include "Media.cpp"
+
 #include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 
-using namespace std;
 class Users;
-class ElementMediatheque;
 
-class Mediatheque{
+class Mediatheque {
+private:
+    int id;
+    std::string nom;
+    std::string description;
+    Users* user;
+    std::vector<Media*> medias;
 
-private : int id;
-private : string nom,description;
-Users* user;
+public:
+    Mediatheque(int id, std::string nom, std::string description)
+        : id(id), nom(std::move(nom)), description(std::move(description)), user(nullptr) {}
 
-vector<ElementMediatheque*> elements;
+    int getId() const { return id; }
+    void setId(int valeur) { id = valeur; }
+    std::string getNom() const { return nom; }
+    void setNom(std::string valeur) { nom = std::move(valeur); }
+    std::string getDescription() const { return description; }
+    void setDescription(std::string valeur) { description = std::move(valeur); }
+    Users* getUser() const { return user; }
+    void setUser(Users* valeur) { user = valeur; }
 
+    const std::vector<Media*>& getMedias() const { return medias; }
 
-
-
-public: Mediatheque(int id, string nom, string description)
-    {
-        this->id = id;
-        this->nom = nom;
-        this->description = description;
-        this->user = nullptr;
-
-
+    void ajouterMedia(Media* media) {
+        if (media == nullptr || std::find(medias.begin(), medias.end(), media) != medias.end()) return;
+        medias.push_back(media);
+        if (std::find(media->mediatheques.begin(), media->mediatheques.end(), this) == media->mediatheques.end()) {
+            media->mediatheques.push_back(this);
+        }
     }
 
-public : int getId(){
-    return this->id;
-}
-
-public : void setId(int id){
-    this->id = id;
-}
-
-public : string getNom(){
-    return this->nom;
-}
-
-public : void setNom(string nom){
-    this->nom = nom;
-}
-
-public : string getDescription(){
-    return this->description;
-}
-
-public : void setDescription(string description){
-    this->description = description;
-}
-
-public : Users* getUser(){
-    return this->user;
-}
-
-public : void setUser(Users* user){
-    this->user = user;
-}
-
-public : vector<ElementMediatheque*> getElements(){
-    return this->elements;
-}
-
-public : void setElements(vector<ElementMediatheque*> elements){
-    this->elements = elements;
-}
-
-public : void addElement(ElementMediatheque* element){
-    if (find(this->elements.begin(), this->elements.end(), element) == this->elements.end()){
-        this->elements.push_back(element);
+    void retirerMedia(Media* media) {
+        if (media == nullptr) return;
+        medias.erase(std::remove(medias.begin(), medias.end(), media), medias.end());
+        media->mediatheques.erase(std::remove(media->mediatheques.begin(), media->mediatheques.end(), this), media->mediatheques.end());
     }
-}
 
-public : void removeElement(ElementMediatheque* element){
-    this->elements.erase(remove(this->elements.begin(), this->elements.end(), element), this->elements.end());
-}
-
-public : string toString(){
-    return "Mediatheque [id=" + to_string(this->id)
-        + ", nom=" + this->nom
-        + ", description=" + this->description
-        + ", user=" + (this->user != nullptr ? "oui" : "aucun")
-        + ", nbMedias=" + to_string(this->elements.size())
-        + "]";
-}
-
-    
-
-
-
-
-
-
-
-
-
+    std::string toString() const {
+        return "Mediatheque [id=" + std::to_string(id)
+            + ", nom=" + nom
+            + ", description=" + description
+            + ", user=" + (user != nullptr ? "oui" : "aucun")
+            + ", nbMedias=" + std::to_string(medias.size())
+            + "]";
+    }
 };
+
+#endif
