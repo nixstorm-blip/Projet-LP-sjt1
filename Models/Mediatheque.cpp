@@ -3,10 +3,10 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include "Media.cpp"
 
 using namespace std;
 class Users;
-class ElementMediatheque;
 
 class Mediatheque{
 
@@ -14,7 +14,7 @@ private : int id;
 private : string nom,description;
 Users* user;
 
-vector<ElementMediatheque*> elements;
+vector<Media*> medias;
 
 
 
@@ -28,6 +28,19 @@ public: Mediatheque(int id, string nom, string description)
 
 
     }
+
+public : Mediatheque(const Mediatheque&) = delete;
+public : Mediatheque& operator=(const Mediatheque&) = delete;
+
+// Détruit les media qui ne sont plus dans aucune autre médiathèque
+public : ~Mediatheque(){
+    for (Media* media : this->medias){
+        media->retirerMediatheque(this);
+        if (media->getMediatheques().empty()){
+            delete media;
+        }
+    }
+}
 
 public : int getId(){
     return this->id;
@@ -61,22 +74,28 @@ public : void setUser(Users* user){
     this->user = user;
 }
 
-public : vector<ElementMediatheque*> getElements(){
-    return this->elements;
+public : vector<Media*> getMedias(){
+    return this->medias;
 }
 
-public : void setElements(vector<ElementMediatheque*> elements){
-    this->elements = elements;
-}
-
-public : void addElement(ElementMediatheque* element){
-    if (find(this->elements.begin(), this->elements.end(), element) == this->elements.end()){
-        this->elements.push_back(element);
+public : void ajouterMedia(Media* media){
+    if (find(this->medias.begin(), this->medias.end(), media) == this->medias.end()){
+        this->medias.push_back(media);
+        media->ajouterMediatheque(this);
     }
 }
 
-public : void removeElement(ElementMediatheque* element){
-    this->elements.erase(remove(this->elements.begin(), this->elements.end(), element), this->elements.end());
+public : void supprimerMedia(int id){
+    for (Media* media : this->medias){
+        if (media->getId() == id){
+            this->medias.erase(remove(this->medias.begin(), this->medias.end(), media), this->medias.end());
+            media->retirerMediatheque(this);
+            if (media->getMediatheques().empty()){
+                delete media;
+            }
+            return;
+        }
+    }
 }
 
 public : string toString(){
@@ -84,7 +103,7 @@ public : string toString(){
         + ", nom=" + this->nom
         + ", description=" + this->description
         + ", user=" + (this->user != nullptr ? "oui" : "aucun")
-        + ", nbMedias=" + to_string(this->elements.size())
+        + ", nbMedias=" + to_string(this->medias.size())
         + "]";
 }
 
