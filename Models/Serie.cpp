@@ -1,12 +1,14 @@
 #pragma once
 #include "Media.cpp"
+
+using namespace std;
 class Serie :public Media{
     private:
     int nombreSaisons;
     int nombreEpisodes;
 
     public:
-    Serie(int id, string titre,string annee, string note,string commentaire,bool possede, int nombreSaisons,int nombreEpisodes)
+    Serie(int id, string titre,string annee, int note,string commentaire,bool possede, int nombreSaisons,int nombreEpisodes)
     :Media(id,titre,annee,note,commentaire,possede),
     nombreSaisons(nombreSaisons),
     nombreEpisodes(nombreEpisodes)
@@ -19,7 +21,7 @@ class Serie :public Media{
  
   void setNombreSaisons(int nombre){
     if (nombre < 0){
-        throw std::invalid_argument(
+        throw invalid_argument(
             "Le nombre de saisons ne peut pas etre negatif"
         );
     }
@@ -34,7 +36,7 @@ class Serie :public Media{
 
  void setnombreEpisodes(int nombre){
     if(nombre <0 ){
-        throw std::invalid_argument(
+        throw invalid_argument(
             "le nombres d episodes ne doit pas etre negatif "
         );
     }

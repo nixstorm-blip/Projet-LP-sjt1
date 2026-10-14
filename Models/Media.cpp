@@ -5,6 +5,8 @@
 #include <algorithm>
 #include "Tag.cpp"
 #include "Format.cpp"
+#include "Genre.cpp"
+#include "Personne.cpp"
 
 using namespace std;
 class Mediatheque;
@@ -12,15 +14,18 @@ class Mediatheque;
 class Media{
 
 private : int id;
-private : string titre,annee,note,commentaire;
+private : string titre,annee,commentaire;
+private : int note;
 private : bool possede;
 
 vector<Mediatheque*> mediatheques;
 vector<Tag*> tags;
 Format* format = nullptr;
+Genre* genre = nullptr;
+vector<Personne*> createurs;
 
 
-public : Media(int id, string titre, string annee, string note, string commentaire, bool possede){
+public : Media(int id, string titre, string annee, int note, string commentaire, bool possede){
 
         this->id = id;
         this->titre = titre;
@@ -40,6 +45,12 @@ public : virtual ~Media(){
     }
     if (this->format != nullptr){
         this->format->removeMedia(this);
+    }
+    if (this->genre != nullptr){
+        this->genre->removeMedia(this);
+    }
+    for (Personne* personne : this->createurs){
+        personne->removeOeuvre(this);
     }
 }
 
@@ -67,11 +78,11 @@ public : void setAnnee(string annee){
     this->annee = annee;
 }
 
-public : string getNote(){
+public : int getNote(){
     return this->note;
 }
 
-public : void setNote(string note){
+public : void setNote(int note){
     this->note = note;
 }
 
@@ -152,14 +163,49 @@ public : void setFormat(Format* format){
     }
 }
 
+public : Genre* getGenre(){
+    return this->genre;
+}
+
+public : void setGenre(Genre* genre){
+    if (this->genre == genre){
+        return;
+    }
+    if (this->genre != nullptr){
+        this->genre->removeMedia(this);
+    }
+    this->genre = genre;
+    if (genre != nullptr){
+        genre->addMedia(this);
+    }
+}
+
+public : vector<Personne*> getCreateurs(){
+    return this->createurs;
+}
+
+public : void ajouterCreateur(Personne* personne){
+    if (find(this->createurs.begin(), this->createurs.end(), personne) == this->createurs.end()){
+        this->createurs.push_back(personne);
+        personne->addOeuvre(this);
+    }
+}
+
+public : void retirerCreateur(Personne* personne){
+    this->createurs.erase(remove(this->createurs.begin(), this->createurs.end(), personne), this->createurs.end());
+    personne->removeOeuvre(this);
+}
+
 public : virtual string toString(){
     return "Media [id=" + to_string(this->id)
         + ", titre=" + this->titre
         + ", annee=" + this->annee
-        + ", note=" + this->note
+        + ", note=" + to_string(this->note)
         + ", commentaire=" + this->commentaire
         + ", possede=" + (this->possede ? "oui" : "non")
         + ", format=" + (this->format != nullptr ? this->format->getNomFormat() : "aucun")
+        + ", genre=" + (this->genre != nullptr ? this->genre->getLibelle() : "aucun")
+        + ", nbCreateurs=" + to_string(this->createurs.size())
         + ", nbTags=" + to_string(this->tags.size())
         + ", nbMediatheques=" + to_string(this->mediatheques.size())
         + "]";
