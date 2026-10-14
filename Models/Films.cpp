@@ -1,14 +1,16 @@
 #pragma once
 #include "Media.cpp"
 
+using namespace std;
+
 class Films : public Media {
 private:
     int duree;
-    std::string isan;
+    string isan;
 
 public:
-    Films(int id, std::string titre, std::string annee, std::string note,
-          std::string commentaire, bool possede, int duree, std::string isan)
+    Films(int id, string titre, string annee, int note,
+          string commentaire, bool possede, int duree, string isan)
         : Media(id, titre, annee, note, commentaire, possede),
           duree(duree), isan(isan) {}
 
@@ -22,27 +24,27 @@ public:
         this->duree = duree;
     }
 
-    std::string getIsan() const {
+    string getIsan() const {
         return isan;
     }
 
-    void setIsan(std::string isan) {
+    void setIsan(string isan) {
         this->isan = isan;
     }
 
-    std::string afficher() {
-        return "Films [id=" + std::to_string(getId())
+    string afficher() {
+        return "Films [id=" + to_string(getId())
             + ", titre=" + getTitre()
             + ", annee=" + getAnnee()
-            + ", note=" + getNote()
+            + ", note=" + to_string(getNote())
             + ", commentaire=" + getCommentaire()
             + ", possede=" + (getPossede() ? "oui" : "non")
-            + ", duree=" + std::to_string(duree)
+            + ", duree=" + to_string(duree)
             + ", isan=" + isan
             + "]";
     }
 
-    std::string toString() override {
+    string toString() override {
         return afficher();
     }
 };

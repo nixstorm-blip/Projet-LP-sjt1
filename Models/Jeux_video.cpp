@@ -9,7 +9,7 @@ private:
 	string plateforme;
 
 public:
-	JeuVideo(int id, string titre, string annee, string note,
+	JeuVideo(int id, string titre, string annee, int note,
 			 string commentaire, bool possede,
 			 string editeur, string plateforme)
 		: Media(id, titre, annee, note, commentaire, possede),
@@ -35,7 +35,7 @@ public:
 		return "JeuVideo [id=" + to_string(getId())
 			+ ", titre=" + getTitre()
 			+ ", annee=" + getAnnee()
-			+ ", note=" + getNote()
+			+ ", note=" + to_string(getNote())
 			+ ", commentaire=" + getCommentaire()
 			+ ", possede=" + (getPossede() ? "oui" : "non")
 			+ ", editeur=" + editeur
