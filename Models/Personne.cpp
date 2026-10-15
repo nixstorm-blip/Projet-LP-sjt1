@@ -1,82 +1,96 @@
 #pragma once
-#include <iostream>
-#include <string>
-#include <vector>
-#include <algorithm>
 
-using namespace std;
+#include <iostream>
+#include <algorithm>
+#include <string>
+#include <stdexcept>
+#include <vector>
+
 class Media;
 
-class Personne{
+class Personne {
+private:
+    int id;
+    std::string nom;
+    std::string prenom;
+    
+    std::vector<Media*> medias;
+ 
 
-private : int id;
-private : string nom,prenom,nationalite;
-
-vector<Media*> oeuvres;
-
-
-public : Personne(int id, string nom, string prenom, string nationalite){
-
-        this->id = id;
-        this->nom = nom;
-        this->prenom = prenom;
-        this->nationalite = nationalite;
-
-}
-
-public : int getId(){
-    return this->id;
-}
-
-public : void setId(int id){
-    this->id = id;
-}
-
-public : string getNom(){
-    return this->nom;
-}
-
-public : void setNom(string nom){
-    this->nom = nom;
-}
-
-public : string getPrenom(){
-    return this->prenom;
-}
-
-public : void setPrenom(string prenom){
-    this->prenom = prenom;
-}
-
-public : string getNationalite(){
-    return this->nationalite;
-}
-
-public : void setNationalite(string nationalite){
-    this->nationalite = nationalite;
-}
-
-public : vector<Media*> getOeuvres(){
-    return this->oeuvres;
-}
-
-public : void addOeuvre(Media* media){
-    if (find(this->oeuvres.begin(), this->oeuvres.end(), media) == this->oeuvres.end()){
-        this->oeuvres.push_back(media);
+public:
+    Personne(int id, std::string nom, std::string prenom)
+    : id(id), nom(nom), prenom(prenom)
+{
+    if(this->nom.empty()){
+        throw std::invalid_argument(
+            "le nom ne peut pas etre vide"
+        );
     }
 }
+    int getId()const{
+    return id;
+  }
 
-public : void removeOeuvre(Media* media){
-    this->oeuvres.erase(remove(this->oeuvres.begin(), this->oeuvres.end(), media), this->oeuvres.end());
+    const std::string& getNom() const {
+    return nom;
 }
 
-public : string afficher(){
-    return "Personne [id=" + to_string(this->id)
-        + ", nom=" + this->nom
-        + ", prenom=" + this->prenom
-        + ", nationalite=" + this->nationalite
-        + ", nbOeuvres=" + to_string(this->oeuvres.size())
-        + "]";
+    const std::string& getPrenom() const {
+    return prenom;
+}
+
+const std::vector<Media*>& getMedias() const {
+    return medias;
+}
+
+void setNom(const std::string& nouveauNom) {
+    if (nouveauNom.empty()) {
+        throw std::invalid_argument(
+            "Le nom ne peut pas etre vide"
+        );
+    }
+    nom = nouveauNom;
+}
+
+void setPrenom(const std::string& nouveauPrenom) {
+    prenom = nouveauPrenom;
+}
+
+bool contientMedia(Media* media) const{
+    return std::find(medias.begin(), medias.end(), media)
+           != medias.end();
+}
+
+void ajouterMedia(Media* media){
+    if (media != nullptr && !contientMedia(media)) {
+        medias.push_back(media);
+    }
+
+}
+
+
+void retirerMedia(Media* media) {
+    medias.erase(
+        std::remove(medias.begin(), medias.end(), media),
+        medias.end()
+    );
 }
 
 };
+
+
+int main() {
+    Personne p(1, "Orwell", "George");
+
+    std::cout << "Nom : " << p.getNom() << std::endl;
+    std::cout << "Prenom : " << p.getPrenom() << std::endl;
+
+    // Verifier que nullptr est refuse
+    p.ajouterMedia(nullptr);
+
+    std::cout << "Nombre de medias : "
+              << p.getMedias().size() << std::endl;
+
+    return 0;
+}
+
