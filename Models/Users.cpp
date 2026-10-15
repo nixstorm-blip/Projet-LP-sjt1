@@ -13,7 +13,6 @@ private : string login,mdp;
 
 Mediatheque* mediatheque;
 
-// Liste de tous les utilisateurs
 inline static vector<Users*> users;
 
 
