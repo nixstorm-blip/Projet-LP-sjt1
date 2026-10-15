@@ -79,18 +79,3 @@ void retirerMedia(Media* media) {
 };
 
 
-int main() {
-    Personne p(1, "Orwell", "George");
-
-    std::cout << "Nom : " << p.getNom() << std::endl;
-    std::cout << "Prenom : " << p.getPrenom() << std::endl;
-
-    // Verifier que nullptr est refuse
-    p.ajouterMedia(nullptr);
-
-    std::cout << "Nombre de medias : "
-              << p.getMedias().size() << std::endl;
-
-    return 0;
-}
-
