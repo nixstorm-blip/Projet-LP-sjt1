@@ -1,0 +1,78 @@
+{
+  "_total": 5,
+  "medias": [
+    {
+      "type": "Films",
+      "id": 1,
+      "titre": "Inception",
+      "annee": "2010",
+      "note": 9,
+      "commentaire": "Excellent film",
+      "possede": true,
+      "duree": 148,
+      "isan": "ISAN-1",
+      "format": "DVD",
+      "genre": "SF",
+      "createurs": [{"nom": "Nolan", "prenom": "Christopher"}],
+      "tags": [{"id": 1, "nom": "rêve", "description": "film sur les rêves"}]
+    },
+    {
+      "type": "Serie",
+      "id": 2,
+      "titre": "Dark",
+      "annee": "2017",
+      "note": 8,
+      "commentaire": "A revoir",
+      "possede": false,
+      "nombreSaisons": 3,
+      "nombreEpisodes": 26,
+      "format": null,
+      "genre": null,
+      "createurs": [],
+      "tags": []
+    },
+    {
+      "type": "Livre",
+      "id": 3,
+      "titre": "Dune",
+      "annee": "1965",
+      "note": 10,
+      "commentaire": "",
+      "possede": true,
+      "edition": "Pocket",
+      "isbn": "978-2266320481",
+      "format": null,
+      "genre": null,
+      "createurs": [],
+      "tags": []
+    },
+    {
+      "type": "Album",
+      "id": 4,
+      "titre": "Discovery",
+      "annee": "2001",
+      "note": 7,
+      "commentaire": "",
+      "possede": true,
+      "format": null,
+      "genre": null,
+      "createurs": [],
+      "tags": []
+    },
+    {
+      "type": "JeuVideo",
+      "id": 5,
+      "titre": "Zelda",
+      "annee": "2017",
+      "note": 10,
+      "commentaire": "Tres bon jeu",
+      "possede": true,
+      "editeur": "Nintendo",
+      "plateforme": "Switch",
+      "format": null,
+      "genre": null,
+      "createurs": [],
+      "tags": []
+    }
+  ]
+}
