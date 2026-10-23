@@ -388,46 +388,94 @@ private:
         if (dynamic_cast<Album*>(media)) return "Album";
         return "Media";
     }
+    
+    // --- MODIFICATION 1 : L'affichage ligne par ligne avec correction anti-doublon ---
     std::string affichageEtendu(Media* media) const {
-        std::string resultat = media->afficher();
-        if (dynamic_cast<Album*>(media)) {
+        std::string resultat = "\n==================================\n";
+        resultat += "Type : " + typeMedia(media) + "\n";
+        resultat += "ID : " + std::to_string(media->getId()) + "\n";
+        resultat += "Titre : " + media->getTitre() + "\n";
+        resultat += "Annee : " + media->getAnnee() + "\n";
+        resultat += "Note : " + std::to_string(media->getNote()) + "/10\n";
+        resultat += "Commentaire : " + media->getCommentaire() + "\n";
+        resultat += "Possede : " + std::string(media->getPossede() ? "Oui" : "Non") + "\n";
+
+        if (auto* film = dynamic_cast<Films*>(media)) {
+            resultat += "Duree : " + std::to_string(film->getDuree()) + " min\n";
+            resultat += "ISAN : " + film->getIsan() + "\n";
+        } else if (auto* livre = dynamic_cast<Livre*>(media)) {
+            resultat += "Edition : " + livre->getEdition() + "\n";
+            resultat += "ISBN : " + livre->getIsbn() + "\n";
+        } else if (auto* serie = dynamic_cast<Serie*>(media)) {
+            resultat += "Saisons : " + std::to_string(serie->getNombreSaisons()) + "\n";
+            resultat += "Episodes : " + std::to_string(serie->getNombreEpisodes()) + "\n";
+        } else if (auto* jeu = dynamic_cast<JeuVideo*>(media)) {
+            resultat += "Editeur : " + jeu->getEditeur() + "\n";
+            resultat += "Plateforme : " + jeu->getPlateforme() + "\n";
+        } else if (dynamic_cast<Album*>(media)) {
             auto it = artistesAlbums.find(media->getId());
-            if (it != artistesAlbums.end()) resultat += ", artiste=" + it->second;
+            if (it != artistesAlbums.end()) resultat += "Artiste : " + it->second + "\n";
         }
-        resultat += "\n  Créateurs : ";
-        if (media->getCreateurs().empty()) resultat += "aucun";
-        for (Personne* personne : media->getCreateurs()) {
-            if (personne) {
-                resultat += personne->getPrenom() + " " + personne->getNom();
-                const auto role = rolesCreateurs.find(cleRole(media->getId(), personne->getId()));
-                if (role != rolesCreateurs.end() && !role->second.empty()) resultat += " (" + role->second + ")";
-                resultat += "; ";
+
+        resultat += "Createurs : ";
+        if (media->getCreateurs().empty()) resultat += "aucun\n";
+        else {
+            resultat += "\n";
+            for (Personne* personne : media->getCreateurs()) {
+                if (personne) {
+                    // Correction du bug "Nom Prénom Nom"
+                    std::string nomComplet = personne->getPrenom() + " " + personne->getNom();
+                    if (personne->getPrenom() == personne->getNom()) {
+                        nomComplet = personne->getNom();
+                    }
+                    resultat += "  - " + nomComplet;
+                    
+                    const auto role = rolesCreateurs.find(cleRole(media->getId(), personne->getId()));
+                    if (role != rolesCreateurs.end() && !role->second.empty()) resultat += " (" + role->second + ")";
+                    resultat += "\n";
+                }
             }
         }
-        resultat += "\n  Tags : ";
-        if (media->getTags().empty()) resultat += "aucun";
-        for (Tag* tag : media->getTags()) if (tag) resultat += tag->getNom() + "; ";
-        resultat += "\n  Listes : ";
+        
+        resultat += "Tags : ";
+        if (media->getTags().empty()) resultat += "aucun\n";
+        else {
+            resultat += "\n";
+            for (Tag* tag : media->getTags()) if (tag) resultat += "  - " + tag->getNom() + "\n";
+        }
+
+        resultat += "Listes : ";
         bool trouve = false;
-        for (const auto& liste : listes) for (Media* m : liste->getMedias()) if (m == media) { resultat += liste->getNom() + "; "; trouve = true; }
-        if (!trouve) resultat += "aucune";
-        resultat += "\n  Franchises : ";
+        for (const auto& liste : listes) for (Media* m : liste->getMedias()) if (m == media) { if (!trouve) { resultat += "\n"; trouve = true; } resultat += "  - " + liste->getNom() + "\n"; }
+        if (!trouve) resultat += "aucune\n";
+
+        resultat += "Franchises : ";
         trouve = false;
-        for (const auto& franchise : franchises) for (Media* m : franchise->getMedias()) if (m == media) { resultat += franchise->getNom() + "; "; trouve = true; }
-        if (!trouve) resultat += "aucune";
+        for (const auto& franchise : franchises) for (Media* m : franchise->getMedias()) if (m == media) { if (!trouve) { resultat += "\n"; trouve = true; } resultat += "  - " + franchise->getNom() + "\n"; }
+        if (!trouve) resultat += "aucune\n";
+
+        resultat += "==================================\n";
         return resultat;
     }
 
     void afficherMedias(const std::vector<Media*>& medias) const {
         if (medias.empty()) { std::cout << "Aucun média correspondant.\n"; return; }
-        for (Media* media : medias) std::cout << affichageEtendu(media) << "\n\n";
+        for (Media* media : medias) std::cout << affichageEtendu(media) << "\n";
     }
     void afficherTous() const { afficherMedias(tousLesMedias()); }
+    
+    // --- MODIFICATION 2 : Menu Ajouter média ligne par ligne ---
     void ajouterMedia() {
         if (!depotMedias) depotMedias = std::make_unique<Mediatheque>(-1, "Dépôt interne", "Propriétaire des médias de l'application");
         assurerBibliothequePrincipale();
-        std::cout << "1 Livre | 2 Film | 3 Série | 4 Jeu vidéo | 5 Album\n";
+        
+        std::cout << "1. Livre\n"
+                  << "2. Film\n"
+                  << "3. Série\n"
+                  << "4. Jeu vidéo\n"
+                  << "5. Album\n";
         const int type = lireEntier("Type : ", 1, 5);
+        
         const int id = prochainIdMedia();
         const std::string titre = lireTexte("Titre : ");
         if (titre.empty()) { std::cout << "Le titre ne peut pas être vide.\n"; return; }
@@ -459,7 +507,31 @@ private:
         depotMedias->ajouterMedia(media);
         bibliotheques.front()->ajouterMedia(media);
         std::cout << "Média créé avec l'identifiant " << id << ".\n";
+
+        // NOUVEAU : Association d'un créateur
+        std::cout << "Voulez-vous associer un créateur (auteur, réalisateur...) ?\n";
+        if (lireOuiNon("Associer")) {
+            if (personnes.empty()) {
+                std::cout << "Aucune personne n'existe. Créez-en une d'abord via le menu 6.\n";
+            } else {
+                std::cout << "Personnes disponibles :\n";
+                for (const auto& p : personnes) {
+                    std::cout << p->getId() << " : " << p->getPrenom() << " " << p->getNom() << "\n";
+                }
+                const int idP = lireEntier("ID de la personne à associer : ", 1);
+                Personne* p = trouverPersonne(idP);
+                if (p) {
+                    media->ajouterCreateur(p);
+                    const std::string role = lireTexte("Rôle (Auteur, Réalisateur...) : ");
+                    rolesCreateurs[cleRole(media->getId(), p->getId())] = role;
+                    std::cout << "Créateur associé avec succès.\n";
+                } else {
+                    std::cout << "Personne introuvable.\n";
+                }
+            }
+        }
     }
+
     void supprimerMedia() {
         const int id = lireEntier("Identifiant du média à supprimer : ", 1);
         Media* media = trouverMedia(id);
@@ -476,11 +548,19 @@ private:
         if (depotMedias) depotMedias->supprimerMedia(id);
         std::cout << "Média et ses associations supprimés.\n";
     }
+    
+    // --- MODIFICATION 3 : Menu Modifier média ligne par ligne ---
     void modifierMedia() {
         Media* media = trouverMedia(lireEntier("Identifiant du média à modifier : ", 1));
         if (!media) { std::cout << "Média introuvable.\n"; return; }
         while (true) {
-            std::cout << "1 Titre  2 Année  3 Note  4 Commentaire  5 Possédé  6 Attribut spécialisé  0 Terminer\n";
+            std::cout << "1. Titre\n"
+                      << "2. Année\n"
+                      << "3. Note\n"
+                      << "4. Commentaire\n"
+                      << "5. Possédé\n"
+                      << "6. Attribut spécialisé\n"
+                      << "0. Terminer\n";
             const int choix = lireEntier("Modification : ", 0, 6);
             if (choix == 0) return;
             if (choix == 1) { std::string v = lireTexte("Nouveau titre : "); if (!v.empty()) media->setTitre(v); }
@@ -564,8 +644,16 @@ private:
         bibliotheques.push_back(std::make_unique<Mediatheque>(id, nom, description));
         std::cout << "Médiathèque créée, id " << id << ".\n";
     }
+    
+    // --- MODIFICATION 4 : Menu Associer ligne par ligne ---
     void associer() {
-        std::cout << "1 Médiathèque  2 Personne/créateur  3 Liste  4 Franchise  5 Genre  6 Format  7 Tag\n";
+        std::cout << "1. Médiathèque\n"
+                  << "2. Personne/créateur\n"
+                  << "3. Liste\n"
+                  << "4. Franchise\n"
+                  << "5. Genre\n"
+                  << "6. Format\n"
+                  << "7. Tag\n";
         const int type = lireEntier("Relation : ", 1, 7);
         Media* media = trouverMedia(lireEntier("ID du média : ", 1));
         if (!media) { std::cout << "Média introuvable.\n"; return; }
@@ -595,14 +683,31 @@ private:
             std::cout << "Tag ajouté.\n";
         }
     }
+    
+    // --- MODIFICATION 5 : Afficher collections ligne par ligne ---
     void afficherCollections() const {
-        std::cout << "\n-- Listes --\n"; for (const auto& x : listes) std::cout << x->toString() << "\n";
-        std::cout << "-- Franchises --\n"; for (const auto& x : franchises) std::cout << x->toString() << "\n";
-        std::cout << "-- Genres --\n"; for (const auto& x : genres) std::cout << x->afficher() << "\n";
-        std::cout << "-- Formats --\n"; for (const auto& x : formats) std::cout << x->afficher() << "\n";
-        std::cout << "-- Médiathèques --\n"; for (const auto& x : bibliotheques) std::cout << x->afficher() << "\n";
-        std::cout << "-- Personnes --\n";
-        for (const auto& x : personnes) { std::cout << x->getId() << " : " << x->getPrenom() << " " << x->getNom(); auto it = nationalites.find(x->getId()); if (it != nationalites.end()) std::cout << " (" << it->second << ")"; std::cout << "\n"; }
+        std::cout << "\n--- LISTES ---\n"; 
+        for (const auto& x : listes) std::cout << "  ID " << x->getId() << " : " << x->getNom() << " (" << x->getDescription() << ")\n";
+        
+        std::cout << "\n--- FRANCHISES ---\n"; 
+        for (const auto& x : franchises) std::cout << "  ID " << x->getId() << " : " << x->getNom() << "\n";
+        
+        std::cout << "\n--- GENRES ---\n"; 
+        for (const auto& x : genres) std::cout << "  ID " << x->getId() << " : " << x->getLibelle() << "\n";
+        
+        std::cout << "\n--- FORMATS ---\n"; 
+        for (const auto& x : formats) std::cout << "  ID " << x->getId() << " : " << x->getNomFormat() << "\n";
+        
+        std::cout << "\n--- MÉDIATHÈQUES ---\n"; 
+        for (const auto& x : bibliotheques) std::cout << "  ID " << x->getId() << " : " << x->getNom() << "\n";
+        
+        std::cout << "\n--- PERSONNES ---\n";
+        for (const auto& x : personnes) { 
+            std::cout << "  ID " << x->getId() << " : " << x->getPrenom() << " " << x->getNom(); 
+            auto it = nationalites.find(x->getId()); 
+            if (it != nationalites.end()) std::cout << " (" << it->second << ")"; 
+            std::cout << "\n"; 
+        }
     }
 
     Json versJson() const {
@@ -654,9 +759,6 @@ private:
             for (const std::string& key : required) {
                 if (!root.at(key).isArray()) throw std::runtime_error("Le champ '" + key + "' doit être un tableau JSON.");
             }
-            // Construire un nouvel état. À sa destruction, les médiathèques se
-            // détachent avant le dépôt qui possède les médias; les autres objets
-            // restent vivants pendant la destruction de ces médias.
             std::vector<std::unique_ptr<Personne>> newPeople;
             std::vector<std::unique_ptr<Format>> newFormats;
             std::vector<std::unique_ptr<Genre>> newGenres;
@@ -691,7 +793,7 @@ private:
                     x.value("edition",""),x.value("isbn",""),x.value("duree",0),x.value("isan",""),
                     x.value("saisons",0),x.value("episodes",0),x.value("editeur",""),x.value("plateforme",""),x.value("artiste",""));
                 newDepot->ajouterMedia(media.get());
-                media.release(); // Le dépôt garde l'unique propriété du média.
+                media.release();
                 if (type=="Album") newArtists[id]=x.value("artiste","");
             }
 
@@ -724,8 +826,6 @@ private:
                 for (const Json& bid : x.at("bibliotheques")) { int id=bid.get<int>(); checkUnique(libraryLinks,id,"médiathèque"); Mediatheque* b=findIn(newLibraries,id); if (!b) throw std::runtime_error("Médiathèque référencée introuvable."); b->ajouterMedia(media); }
             }
 
-            // Commit : supprimer les anciens liens, puis détruire l'ancien dépôt
-            // pendant que ses anciens objets référencés existent encore.
             for (Media* oldMedia : tousLesMedias()) {
                 for (auto& liste : listes) liste->retirerMedia(oldMedia);
                 for (auto& franchise : franchises) franchise->retirerMedia(oldMedia);
@@ -749,14 +849,28 @@ public:
     Application() : depotMedias(Parseur::chargerMediatheque(-1, "Dépôt interne", "Propriétaire des médias")) {
         assurerBibliothequePrincipale();
     }
+    
+    // --- MODIFICATION 6 : Menu principal déjà ligne par ligne ---
     void executer() {
         charger();
         while (true) {
             std::cout << "\n=== MÉDIATHÈQUE PERSONNELLE ===\n"
-                      << "1 Afficher médias  2 Ajouter média  3 Modifier média  4 Supprimer média\n"
-                      << "5 Filtrer/rechercher  6 Créer personne  7 Créer liste  8 Créer franchise\n"
-                      << "9 Créer genre  10 Créer format  11 Créer médiathèque  12 Associer\n"
-                      << "13 Afficher collections  14 Sauvegarder  15 Recharger  0 Quitter\n";
+                      << "1. Afficher médias\n"
+                      << "2. Ajouter média\n"
+                      << "3. Modifier média\n"
+                      << "4. Supprimer média\n"
+                      << "5. Filtrer/rechercher\n"
+                      << "6. Créer personne\n"
+                      << "7. Créer liste\n"
+                      << "8. Créer franchise\n"
+                      << "9. Créer genre\n"
+                      << "10. Créer format\n"
+                      << "11. Créer médiathèque\n"
+                      << "12. Associer\n"
+                      << "13. Afficher collections\n"
+                      << "14. Sauvegarder\n"
+                      << "15. Recharger\n"
+                      << "0. Quitter\n";
             std::string choix;
             try { choix = lireTexte("Choix : "); }
             catch (const std::exception&) { sauvegarder(); return; }
@@ -783,8 +897,14 @@ public:
     }
 };
 
+// --- MODIFICATION 7 : Menu Filtrer ligne par ligne ---
 void Application::filtrer() const {
-    std::cout << "1 Type  2 Genre  3 Liste (id)  4 Franchise (id)  5 Possession  6 Titre\n";
+    std::cout << "1. Type\n"
+              << "2. Genre\n"
+              << "3. Liste (id)\n"
+              << "4. Franchise (id)\n"
+              << "5. Possession\n"
+              << "6. Titre\n";
     const int filtre = lireEntier("Filtre : ", 1, 6);
     const std::string valeur = lireTexte("Valeur : ");
     std::vector<Media*> resultat;
@@ -805,4 +925,3 @@ void Application::filtrer() const {
     }
     afficherMedias(resultat);
 }
-

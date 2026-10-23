@@ -5,7 +5,21 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp"
-cp "$root/mediatheque.json" "$tmp/mediatheque.json"
+
+# Le test doit partir d'un état connu, indépendamment des données personnelles
+# présentes dans le fichier JSON de l'utilisateur.
+cat > "$tmp/mediatheque.json" <<'JSON'
+{
+  "version": 1,
+  "personnes": [],
+  "formats": [],
+  "genres": [],
+  "listes": [],
+  "franchises": [],
+  "bibliotheques": [],
+  "medias": []
+}
+JSON
 
 # Crée les objets, un film, ses liens multiples, sauvegarde puis quitte.
 printf '%s\n' \
@@ -16,7 +30,7 @@ printf '%s\n' \
   10 "Blu-ray" \
   11 "Collection principale" "Bibliothèque principale" \
   11 "Collection secondaire" "Films du salon" \
-  2 2 "Inception" "2010" 9 "Excellent, avec un rêve" o 148 "ISAN-123" \
+  2 2 "Inception" "2010" 9 "Excellent, avec un rêve" o 148 "ISAN-123" n \
   12 1 1 1 \
   12 1 1 2 \
   12 2 1 1 "Réalisateur" \
@@ -25,10 +39,10 @@ printf '%s\n' \
   12 5 1 1 \
   12 6 1 1 \
   12 7 1 "rêve" "Mot-clé avec accent" \
-  2 1 "Fondation" "1951" 8 "Classique" o "Pocket" "978000000001" \
-  2 3 "Dark" "2017" 8 "À revoir" n 3 26 \
-  2 4 "Zelda" "2017" 10 "Très bon jeu" o "Nintendo" "Switch" \
-  2 5 "Discovery" "2001" 9 "Album préféré" o "Daft Punk" \
+  2 1 "Fondation" "1951" 8 "Classique" o "Pocket" "978000000001" n \
+  2 3 "Dark" "2017" 8 "À revoir" n 3 26 n \
+  2 4 "Zelda" "2017" 10 "Très bon jeu" o "Nintendo" "Switch" n \
+  2 5 "Discovery" "2001" 9 "Album préféré" o "Daft Punk" n \
   14 0 | (cd "$tmp" && "$root/mediatheque") > "$tmp/create.log"
 
 python3 -m json.tool "$tmp/mediatheque.json" >/dev/null
@@ -49,9 +63,9 @@ PY
 # Redémarre: filtre par liste et vérifie la restauration des objets, liens et accents.
 printf '%s\n' 5 3 1 1 0 | (cd "$tmp" && "$root/mediatheque") > "$tmp/reload.log"
 grep -q 'Chargement JSON réussi' "$tmp/reload.log"
-grep -q 'Films \[id=1, titre=Inception' "$tmp/reload.log"
+grep -q 'Type : Film' "$tmp/reload.log"
 grep -q 'Christopher Nolan (Réalisateur)' "$tmp/reload.log"
-grep -q 'Inception' "$tmp/reload.log"
+grep -q 'Titre : Inception' "$tmp/reload.log"
 python3 - "$tmp/mediatheque.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as stream:

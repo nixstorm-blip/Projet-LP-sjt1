@@ -1,10 +1,187 @@
 {
-  "version": 1,
-  "personnes": [],
-  "formats": [],
-  "genres": [],
-  "listes": [],
-  "franchises": [],
-  "bibliotheques": [],
-  "medias": []
+  "bibliotheques": [
+    {
+      "description": "Collection principale",
+      "id": 1,
+      "nom": "Ma médiathèque"
+    },
+    {
+      "description": "Ma collection perso",
+      "id": 2,
+      "nom": "Ma collection"
+    }
+  ],
+  "formats": [
+    {
+      "id": 1,
+      "nom": "Blu-ray"
+    }
+  ],
+  "franchises": [
+    {
+      "description": "Sage fantastique",
+      "id": 1,
+      "nom": "le monde magique"
+    }
+  ],
+  "genres": [
+    {
+      "id": 1,
+      "nom": "Science-Fiction"
+    }
+  ],
+  "listes": [
+    {
+      "description": "Top 10",
+      "id": 1,
+      "nom": "Mes livres préférés"
+    }
+  ],
+  "medias": [
+    {
+      "annee": "1998",
+      "bibliotheques": [
+        1
+      ],
+      "commentaire": "beau livre",
+      "createurs": [
+        {
+          "id": 1,
+          "role": "Ateur"
+        }
+      ],
+      "edition": "2000",
+      "formatId": null,
+      "franchises": [],
+      "genreId": null,
+      "id": 2,
+      "isbn": "300",
+      "listes": [],
+      "note": 10,
+      "possede": true,
+      "tags": [],
+      "titre": "le monde",
+      "type": "Livre"
+    },
+    {
+      "annee": "2000",
+      "bibliotheques": [
+        1
+      ],
+      "commentaire": "beau film",
+      "createurs": [
+        {
+          "id": 3,
+          "role": "Réalisateur"
+        }
+      ],
+      "duree": 30,
+      "formatId": null,
+      "franchises": [],
+      "genreId": null,
+      "id": 3,
+      "isan": "300",
+      "listes": [],
+      "note": 8,
+      "possede": true,
+      "tags": [],
+      "titre": "tome",
+      "type": "Film"
+    },
+    {
+      "annee": "2003",
+      "bibliotheques": [
+        1
+      ],
+      "commentaire": "super Série",
+      "createurs": [
+        {
+          "id": 1,
+          "role": "Réalisateur"
+        }
+      ],
+      "episodes": 100,
+      "formatId": null,
+      "franchises": [],
+      "genreId": null,
+      "id": 4,
+      "listes": [],
+      "note": 9,
+      "possede": true,
+      "saisons": 2,
+      "tags": [],
+      "titre": "La vie est belle",
+      "type": "Serie"
+    },
+    {
+      "annee": "2017",
+      "bibliotheques": [
+        1
+      ],
+      "commentaire": "jolie jeux",
+      "createurs": [
+        {
+          "id": 3,
+          "role": "Auteur"
+        }
+      ],
+      "editeur": "Nintendo",
+      "formatId": null,
+      "franchises": [],
+      "genreId": null,
+      "id": 5,
+      "listes": [],
+      "note": 9,
+      "plateforme": "Switch",
+      "possede": true,
+      "tags": [],
+      "titre": "Zelda",
+      "type": "JeuVideo"
+    },
+    {
+      "annee": "2001",
+      "artiste": "Daft Punk",
+      "bibliotheques": [
+        1
+      ],
+      "commentaire": "Album préféré",
+      "createurs": [
+        {
+          "id": 2,
+          "role": "Auteur"
+        }
+      ],
+      "formatId": null,
+      "franchises": [],
+      "genreId": null,
+      "id": 6,
+      "listes": [],
+      "note": 10,
+      "possede": true,
+      "tags": [],
+      "titre": "Discovery",
+      "type": "Album"
+    }
+  ],
+  "personnes": [
+    {
+      "id": 1,
+      "nationalite": "0",
+      "nom": "J.K. Rowling",
+      "prenom": "J.K. Rowling"
+    },
+    {
+      "id": 2,
+      "nationalite": "Britannique",
+      "nom": "J.K. Rowling",
+      "prenom": "Joanne"
+    },
+    {
+      "id": 3,
+      "nationalite": "Sénégalaise",
+      "nom": "Fatou",
+      "prenom": "NDIAYE"
+    }
+  ],
+  "version": 1
 }
