@@ -1,115 +1,148 @@
+
 #pragma once
-#include <iostream>
+
 #include <string>
-#include <vector>
+#include <stdexcept>
+#include <sodium.h>
 #include "Mediatheque.cpp"
 
 using namespace std;
 
-class Users{
+class Users {
 
-private : int id;
-private : string login,mdp;
+private:
+    int id;
+    string login;
+    string passwordHash;
+    Mediatheque* mediatheque;
 
-Mediatheque* mediatheque;
+    // Hacher un mot de passe avec Argon2id
+    static string hacherMdp(const string& motDePasse) {
 
-inline static vector<Users*> users;
+        if (sodium_init() < 0) {
+            throw runtime_error("Erreur initialisation libsodium");
+        }
 
+        char hash[crypto_pwhash_STRBYTES];
 
-public : Users(int id, string login, string mdp){
+        if (crypto_pwhash_str(
+            hash,
+            motDePasse.c_str(),
+            motDePasse.size(),
+            crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            crypto_pwhash_MEMLIMIT_INTERACTIVE
+        ) != 0) {
+            throw runtime_error("Erreur de hachage");
+        }
 
+        string resultat(hash);
+        sodium_memzero(hash, sizeof(hash));
 
+        return resultat;
+    }
+
+public:
+
+    // Constructeur : hache automatiquement le mot de passe
+    Users(int id, string login, string mdp) {
         this->id = id;
         this->login = login;
-        this->mdp = mdp;
+        this->passwordHash = hacherMdp(mdp);
         this->mediatheque = nullptr;
-
-
-}
-
-public : string getLogin(){
-    return this->login;
-}
-
-public : void setLogin(string login){
-    this->login = login;
-}
-
-public : string getMdp(){
-    return this->mdp;
-}
-
-public : void setMdp(string mdp){
-    this->mdp = mdp;
-}
-
-public : int getId(){
-    return this->id;
-}
-
-public : void setId(int id){
-    this->id = id;
-}
-
-public : Mediatheque* getMediatheque(){
-    return this->mediatheque;
-}
-
-public : void setMediatheque(Mediatheque* mediatheque){
-    if (this->mediatheque == mediatheque){
-        return;
     }
-    if (this->mediatheque != nullptr){
-        this->mediatheque->setUser(nullptr);
+
+    // Eviter de copier un utilisateur
+    Users(const Users&) = delete;
+    Users& operator=(const Users&) = delete;
+
+    // GETTERS ET SETTERS
+
+    int getId() const {
+        return this->id;
     }
-    if (mediatheque != nullptr && mediatheque->getUser() != nullptr){
-        mediatheque->getUser()->mediatheque = nullptr;
+
+    void setId(int id) {
+        this->id = id;
     }
-    this->mediatheque = mediatheque;
-    if (mediatheque != nullptr){
-        mediatheque->setUser(this);
+
+    string getLogin() const {
+        return this->login;
     }
-}
 
-public : bool verifierMdp(string mdp){
-    return this->mdp == mdp;
-}
-
-public : string afficher(){
-    return "Users [id=" + to_string(this->id)
-        + ", login=" + this->login
-        + ", mediatheque=" + (this->mediatheque != nullptr ? this->mediatheque->getNom() : "aucune")
-        + "]";
-}
-
-public : void creer(){
-    users.push_back(this);
-}
-
-public : static Users* lire(int id){
-    for (Users* u : users){
-        if (u->getId() == id){
-            return u;
-        }
+    void setLogin(const string& login) {
+        this->login = login;
     }
-    return nullptr;
-}
 
-public : static vector<Users*> lireTous(){
-    return users;
-}
+    // Renvoie uniquement l'empreinte, jamais le mot de passe
+    string getPasswordHash() const {
+        return this->passwordHash;
+    }
 
-public : void modifier(string login, string mdp){
-    this->login = login;
-    this->mdp = mdp;
-}
+    // Changement du mot de passe
+    void setMdp(const string& nouveauMdp) {
+        this->passwordHash = hacherMdp(nouveauMdp);
+    }
 
-public : void supprimer(){
-    for (int i = 0; i < users.size(); i++){
-        if (users[i] == this){
-            users.erase(users.begin() + i);
+    // Verification du mot de passe avec Argon2id
+    bool verifierMdp(const string& mdp) const {
+
+        return crypto_pwhash_str_verify(
+            this->passwordHash.c_str(),
+            mdp.c_str(),
+            mdp.size()
+        ) == 0;
+    }
+
+    // ASSOCIATION AVEC MEDIATHEQUE
+
+    Mediatheque* getMediatheque() const {
+        return this->mediatheque;
+    }
+
+    void setMediatheque(Mediatheque* nouvelleMediatheque) {
+
+        if (this->mediatheque == nouvelleMediatheque) {
             return;
         }
+
+        // Detacher l'ancienne mediatheque
+        if (this->mediatheque != nullptr) {
+            this->mediatheque->setUser(nullptr);
+        }
+
+        // Detacher l'ancien utilisateur de la nouvelle mediatheque
+        if (nouvelleMediatheque != nullptr &&
+            nouvelleMediatheque->getUser() != nullptr) {
+
+            nouvelleMediatheque->getUser()->mediatheque = nullptr;
+        }
+
+        this->mediatheque = nouvelleMediatheque;
+
+        if (nouvelleMediatheque != nullptr) {
+            nouvelleMediatheque->setUser(this);
+        }
     }
-}
+
+    // MODIFICATION DU COMPTE
+
+    void modifier(const string& nouveauLogin,
+                  const string& nouveauMdp) {
+
+        this->login = nouveauLogin;
+        setMdp(nouveauMdp);
+    }
+
+    // AFFICHAGE SANS MOT DE PASSE
+
+    string afficher() const {
+
+        return "Users [id=" + to_string(this->id)
+            + ", login=" + this->login
+            + ", mediatheque="
+            + (this->mediatheque != nullptr
+                ? this->mediatheque->getNom()
+                : "aucune")
+            + "]";
+    }
 };

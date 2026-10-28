@@ -9,8 +9,9 @@ all: app
 
 app: $(APP)
 
-$(APP): main.cpp Application.cpp $(wildcard Models/*.cpp)
-	$(CXX) $(CXXFLAGS) main.cpp -o $(APP)
+
+$(APP): main.cpp Application.cpp authentification.cpp $(wildcard Models/*.cpp)
+	$(CXX) $(CXXFLAGS) main.cpp -o $(APP) -lsodium
 
 run: $(APP)
 	./$(APP)

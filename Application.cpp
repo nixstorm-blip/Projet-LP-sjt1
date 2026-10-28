@@ -34,6 +34,9 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include "authentification.cpp"
+#include <termios.h>
+#include <unistd.h>
 
 // Parseur JSON autonome pour éviter d'imposer une bibliothèque tierce.
 class Json {
@@ -313,6 +316,8 @@ public:
 
 class Application {
 private:
+    Authentification auth;
+
     // Les objets de référence restent vivants jusqu'à la destruction des bibliothèques.
     std::vector<std::unique_ptr<Personne>> personnes;
     std::vector<std::unique_ptr<Format>> formats;
@@ -334,6 +339,103 @@ private:
         std::string texte;
         if (!std::getline(std::cin, texte)) throw std::runtime_error("Fin de saisie.");
         return texte;
+    }
+
+static std::string lireMotDePasse(const std::string& invite) {
+
+    std::cout << invite << std::flush;
+
+    std::string mdp;
+
+    // Si l'entree n'est pas un terminal (ex. test automatique)
+    if (!isatty(STDIN_FILENO)) {
+        if (!std::getline(std::cin, mdp)) {
+            throw std::runtime_error("Fin de saisie.");
+        }
+        return mdp;
+    }
+
+    struct termios ancien;
+
+    if (tcgetattr(STDIN_FILENO, &ancien) != 0) {
+        throw std::runtime_error("Impossible de lire les parametres du terminal.");
+    }
+
+    struct termios nouveau = ancien;
+
+    // Desactiver l'affichage des caracteres
+    nouveau.c_lflag &= ~ECHO;
+
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &nouveau) != 0) {
+        throw std::runtime_error("Impossible de masquer le mot de passe.");
+    }
+
+    // Lire le mot de passe sans l'afficher
+    bool lectureReussie = static_cast<bool>(
+        std::getline(std::cin, mdp)
+    );
+
+    // Toujours reactiver l'affichage
+    int restauration = tcsetattr(STDIN_FILENO, TCSANOW, &ancien);
+
+    std::cout << '\n';
+
+    if (restauration != 0) {
+        throw std::runtime_error("Impossible de restaurer le terminal.");
+    }
+
+    if (!lectureReussie) {
+        throw std::runtime_error("Fin de saisie.");
+    }
+
+    return mdp;
+}
+
+
+    // Inscription / connexion avant l'acces a la mediatheque.
+    bool menuAuthentification() {
+        while (true) {
+            std::cout << "\n=== AUTHENTIFICATION ===\n"
+                      << "1. Inscription\n"
+                      << "2. Connexion\n"
+                        << "0. Quitter\n";
+
+            std::string choix;
+            try {
+                choix = lireTexte("Votre choix : ");
+            } catch (const std::exception&) {
+                return false;
+            }
+
+            if (choix == "0") return false;
+
+            try {
+                if (choix == "1") {
+                    const std::string login = lireTexte("Login : ");
+                    const std::string mdp = lireMotDePasse("Mot de passe : ");
+                    if (auth.inscrire(login, mdp)) {
+                        std::cout << "Compte cree avec succes. Connectez-vous maintenant.\n";
+                    } else {
+                        std::cout << "Ce login existe deja.\n";
+                    }
+                } else if (choix == "2") {
+                    const std::string login = lireTexte("Login : ");
+                    const std::string mdp = lireMotDePasse("Mot de passe : ");
+                    if (auth.connecter(login, mdp)) {
+                        std::cout << "Connexion reussie. Bienvenue "
+                                  << auth.getUtilisateurConnecte()->getLogin() << " !\n";
+                        return true;
+                    }
+                    std::cout << "Identifiants incorrects.\n";
+                } else {
+                    std::cout << "Choix invalide.\n";
+                }
+            } catch (const std::exception& error) {
+                // Une entree fermee interrompt normalement l'application.
+                if (!std::cin.good()) return false;
+                std::cout << "Erreur : " << error.what() << '\n';
+            }
+        }
     }
     static int lireEntier(const std::string& invite, int min = std::numeric_limits<int>::min(), int max = std::numeric_limits<int>::max()) {
         while (true) {
@@ -751,12 +853,15 @@ public:
     }
     void executer() {
         charger();
+        if (!menuAuthentification()) return;
+
         while (true) {
             std::cout << "\n=== MÉDIATHÈQUE PERSONNELLE ===\n"
                       << "1 Afficher médias  2 Ajouter média  3 Modifier média  4 Supprimer média\n"
                       << "5 Filtrer/rechercher  6 Créer personne  7 Créer liste  8 Créer franchise\n"
                       << "9 Créer genre  10 Créer format  11 Créer médiathèque  12 Associer\n"
-                      << "13 Afficher collections  14 Sauvegarder  15 Recharger  0 Quitter\n";
+                      << "13 Afficher collections  14 Sauvegarder  15 Recharger\n"
+                      << "16 Deconnexion  0 Quitter\n";
             std::string choix;
             try { choix = lireTexte("Choix : "); }
             catch (const std::exception&) { sauvegarder(); return; }
@@ -777,6 +882,12 @@ public:
                 else if (choix == "13") afficherCollections();
                 else if (choix == "14") sauvegarder();
                 else if (choix == "15") charger();
+                else if (choix == "16") {
+                    sauvegarder();
+                    auth.deconnecter();
+                    std::cout << "Deconnexion reussie.\n";
+                    return;
+                }
                 else std::cout << "Choix inconnu.\n";
             } catch (const std::exception& error) { std::cout << "Action impossible : " << error.what() << '\n'; }
         }
