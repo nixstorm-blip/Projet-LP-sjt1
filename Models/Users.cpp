@@ -1,147 +1,183 @@
 
 #pragma once
 
-#include <string>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <sodium.h>
 #include "Mediatheque.cpp"
-
-using namespace std;
 
 class Users {
 
 private:
     int id;
-    string login;
-    string passwordHash;
-    Mediatheque* mediatheque;
+    std::string login;
+    std::string passwordHash;
+    Mediatheque* mediatheque = nullptr;
 
-    // Hacher un mot de passe avec Argon2id
-    static string hacherMdp(const string& motDePasse) {
+    struct EmpreinteExistante {};
+     
+    
+    Users(
+        int id,
+        const std::string& login,
+        const std::string& empreinte,
+        EmpreinteExistante
+    )
+        : id(id),
+          login(login),
+          passwordHash(empreinte),
+          mediatheque(nullptr) {}
+
+
+    static std::string hacherMdp(const std::string& mdp) {
 
         if (sodium_init() < 0) {
-            throw runtime_error("Erreur initialisation libsodium");
+            throw std::runtime_error(
+                "Initialisation de libsodium impossible."
+            );
         }
 
         char hash[crypto_pwhash_STRBYTES];
 
         if (crypto_pwhash_str(
-            hash,
-            motDePasse.c_str(),
-            motDePasse.size(),
-            crypto_pwhash_OPSLIMIT_INTERACTIVE,
-            crypto_pwhash_MEMLIMIT_INTERACTIVE
-        ) != 0) {
-            throw runtime_error("Erreur de hachage");
+                hash,
+                mdp.c_str(),
+                mdp.size(),
+                crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                crypto_pwhash_MEMLIMIT_INTERACTIVE
+            ) != 0) {
+
+            throw std::runtime_error(
+                "Hachage du mot de passe impossible."
+            );
         }
 
-        string resultat(hash);
+        std::string resultat(hash);
+
         sodium_memzero(hash, sizeof(hash));
 
         return resultat;
     }
 
+   
 public:
 
-    // Constructeur : hache automatiquement le mot de passe
-    Users(int id, string login, string mdp) {
-        this->id = id;
-        this->login = login;
-        this->passwordHash = hacherMdp(mdp);
-        this->mediatheque = nullptr;
-    }
+    // Inscription : le mot de passe est hache
+    Users(
+        int id,
+        const std::string& login,
+        const std::string& mdp
+    )
+        : id(id),
+          login(login),
+          passwordHash(hacherMdp(mdp)),
+          mediatheque(nullptr) {}
 
-    // Eviter de copier un utilisateur
     Users(const Users&) = delete;
     Users& operator=(const Users&) = delete;
 
-    // GETTERS ET SETTERS
+    // Charger une empreinte deja presente en JSON
+    static std::unique_ptr<Users> depuisEmpreinte(
+        int id,
+        const std::string& login,
+        const std::string& empreinte
+    ) {
+
+        if (id <= 0 ||
+            login.empty() ||
+            empreinte.rfind("$argon2id$", 0) != 0 ||
+            empreinte.size() >= crypto_pwhash_STRBYTES) {
+
+            throw std::invalid_argument(
+                "Compte ou empreinte invalide."
+            );
+        }
+
+        return std::unique_ptr<Users>(
+            new Users(
+                id,
+                login,
+                empreinte,
+                EmpreinteExistante{}
+            )
+        );
+    }
 
     int getId() const {
-        return this->id;
+        return id;
     }
 
-    void setId(int id) {
-        this->id = id;
+    void setId(int valeur) {
+        id = valeur;
     }
 
-    string getLogin() const {
-        return this->login;
+    std::string getLogin() const {
+        return login;
     }
 
-    void setLogin(const string& login) {
-        this->login = login;
+    void setLogin(const std::string& valeur) {
+        login = valeur;
     }
 
-    // Renvoie uniquement l'empreinte, jamais le mot de passe
-    string getPasswordHash() const {
-        return this->passwordHash;
+    std::string getPasswordHash() const {
+        return passwordHash;
     }
 
-    // Changement du mot de passe
-    void setMdp(const string& nouveauMdp) {
-        this->passwordHash = hacherMdp(nouveauMdp);
+    void setMdp(const std::string& mdp) {
+        passwordHash = hacherMdp(mdp);
     }
 
-    // Verification du mot de passe avec Argon2id
-    bool verifierMdp(const string& mdp) const {
-
+    bool verifierMdp(const std::string& mdp) const {
         return crypto_pwhash_str_verify(
-            this->passwordHash.c_str(),
+            passwordHash.c_str(),
             mdp.c_str(),
             mdp.size()
         ) == 0;
     }
 
-    // ASSOCIATION AVEC MEDIATHEQUE
-
     Mediatheque* getMediatheque() const {
-        return this->mediatheque;
+        return mediatheque;
     }
 
     void setMediatheque(Mediatheque* nouvelleMediatheque) {
 
-        if (this->mediatheque == nouvelleMediatheque) {
+        if (mediatheque == nouvelleMediatheque) {
             return;
         }
 
-        // Detacher l'ancienne mediatheque
-        if (this->mediatheque != nullptr) {
-            this->mediatheque->setUser(nullptr);
+        if (mediatheque != nullptr) {
+            mediatheque->setUser(nullptr);
         }
 
-        // Detacher l'ancien utilisateur de la nouvelle mediatheque
         if (nouvelleMediatheque != nullptr &&
             nouvelleMediatheque->getUser() != nullptr) {
 
             nouvelleMediatheque->getUser()->mediatheque = nullptr;
         }
 
-        this->mediatheque = nouvelleMediatheque;
+        mediatheque = nouvelleMediatheque;
 
         if (nouvelleMediatheque != nullptr) {
             nouvelleMediatheque->setUser(this);
         }
     }
 
-    // MODIFICATION DU COMPTE
-
-    void modifier(const string& nouveauLogin,
-                  const string& nouveauMdp) {
-
-        this->login = nouveauLogin;
+    void modifier(
+        const std::string& nouveauLogin,
+        const std::string& nouveauMdp
+    ) {
+        login = nouveauLogin;
         setMdp(nouveauMdp);
     }
 
-    // AFFICHAGE SANS MOT DE PASSE
+    std::string afficher() const {
 
-    string afficher() const {
-
-        return "Users [id=" + to_string(this->id)
-            + ", login=" + this->login
+        return "Users [id=" + std::to_string(id)
+            + ", login=" + login
             + ", mediatheque="
-            + (this->mediatheque != nullptr
-                ? this->mediatheque->getNom()
+            + (mediatheque != nullptr
+                ? mediatheque->getNom()
                 : "aucune")
             + "]";
     }

@@ -286,6 +286,12 @@ public:
     Array::const_iterator begin() const { return std::get<Array>(data).begin(); }
     Array::const_iterator end() const { return std::get<Array>(data).end(); }
     bool isNull() const { return std::holds_alternative<std::nullptr_t>(data); }
+    bool contient(const std::string& cle) const {
+    const auto* objet = std::get_if<Object>(&data);
+
+    return objet != nullptr &&
+           objet->find(cle) != objet->end();
+}
     template<class T> T get() const {
         if constexpr (std::is_same_v<T, Json>) return *this;
         else if constexpr (std::is_same_v<T, std::string>) return std::get<std::string>(data);
@@ -756,7 +762,17 @@ static std::string lireMotDePasse(const std::string& invite) {
             for (const std::string& key : required) {
                 if (!root.at(key).isArray()) throw std::runtime_error("Le champ '" + key + "' doit être un tableau JSON.");
             }
-            // Construire un nouvel état. À sa destruction, les médiathèques se
+
+       
+
+
+
+// Charger les comptes sauvegardes dans le JSON
+Authentification nouveauxComptes;
+
+
+
+// Construire un nouvel état. À sa destruction, les médiathèques se
             // détachent avant le dépôt qui possède les médias; les autres objets
             // restent vivants pendant la destruction de ces médias.
             std::vector<std::unique_ptr<Personne>> newPeople;
@@ -839,6 +855,7 @@ static std::string lireMotDePasse(const std::string& invite) {
             listes=std::move(newLists); franchises=std::move(newFranchises);
             depotMedias=std::move(newDepot); bibliotheques=std::move(newLibraries);
             nationalites=std::move(newNationalities); artistesAlbums=std::move(newArtists); rolesCreateurs=std::move(newRoles);
+            auth = std::move(nouveauxComptes);
             chargementInvalide=false;
             std::cout << "Chargement JSON réussi.\n";
         } catch (const std::exception& error) {
@@ -882,12 +899,16 @@ public:
                 else if (choix == "13") afficherCollections();
                 else if (choix == "14") sauvegarder();
                 else if (choix == "15") charger();
-                else if (choix == "16") {
-                    sauvegarder();
-                    auth.deconnecter();
-                    std::cout << "Deconnexion reussie.\n";
+               else if (choix == "16") {
+                sauvegarder();
+                auth.deconnecter();
+
+                std::cout << "Deconnexion reussie.\n";
+
+                if (!menuAuthentification()) {
                     return;
                 }
+             }
                 else std::cout << "Choix inconnu.\n";
             } catch (const std::exception& error) { std::cout << "Action impossible : " << error.what() << '\n'; }
         }
