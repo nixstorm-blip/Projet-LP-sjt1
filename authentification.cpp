@@ -1,33 +1,32 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include <climits>
 #include <memory>
+#include <set>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "Models/Users.cpp"
 
-using namespace std;
+// Structure utilisee pour la sauvegarde JSON
+struct CompteSauvegarde {
+    int id;
+    std::string login;
+    std::string passwordHash;
+};
 
 class Authentification {
 
 private:
-    // Liste des comptes : responsable de leur memoire
-    vector<unique_ptr<Users>> comptes;
-
-    // Utilisateur actuellement connecte
+    std::vector<std::unique_ptr<Users>> comptes;
     Users* utilisateurActuel = nullptr;
-
-    // Prochain identifiant disponible
     int prochainId = 1;
 
-    // Rechercher un compte par son login
-    Users* trouverParLogin(const string& login) const {
-
+    Users* trouverParLogin(const std::string& login) const {
         for (const auto& utilisateur : comptes) {
-
             if (utilisateur->getLogin() == login) {
                 return utilisateur.get();
             }
@@ -39,60 +38,61 @@ private:
 public:
 
     // INSCRIPTION
-    bool inscrire(const string& login, const string& mdp) {
-
-        // Login obligatoire
-        if (login.find_first_not_of(" \t\r\n") == string::npos) {
-            throw invalid_argument("Le login est obligatoire");
+    bool inscrire(
+        const std::string& login,
+        const std::string& mdp
+    ) {
+        if (login.find_first_not_of(" \t\r\n")
+            == std::string::npos) {
+            throw std::invalid_argument(
+                "Le login ne peut pas etre vide."
+            );
         }
 
-       if (mdp.empty()) {
-         throw invalid_argument(
-        "Le mot de passe ne peut pas etre vide"
-     );
-}
+        if (mdp.empty()) {
+            throw std::invalid_argument(
+                "Le mot de passe ne peut pas etre vide."
+            );
+        }
 
-        // Interdire deux comptes avec le meme login
         if (trouverParLogin(login) != nullptr) {
             return false;
         }
 
-        // Users hache automatiquement le mot de passe
-        auto utilisateur = make_unique<Users>(
-            prochainId,
-            login,
-            mdp
+        if (prochainId == INT_MAX) {
+            throw std::runtime_error(
+                "Limite des identifiants atteinte."
+            );
+        }
+
+        comptes.push_back(
+            std::make_unique<Users>(
+                prochainId, login, mdp
+            )
         );
 
-        // Ajouter le compte dans le tableau
-        comptes.push_back(move(utilisateur));
-
-        prochainId++;
-
+        ++prochainId;
         return true;
     }
 
     // CONNEXION
-    bool connecter(const string& login, const string& mdp) {
-
-        // Fermer la session precedente
+    bool connecter(
+        const std::string& login,
+        const std::string& mdp
+    ) {
         utilisateurActuel = nullptr;
 
-        // Rechercher l'utilisateur
         Users* utilisateur = trouverParLogin(login);
 
         if (utilisateur == nullptr) {
             return false;
         }
 
-        // Verifier le mot de passe hache
         if (!utilisateur->verifierMdp(mdp)) {
             return false;
         }
 
-        // Connexion reussie
         utilisateurActuel = utilisateur;
-
         return true;
     }
 
@@ -101,18 +101,73 @@ public:
         utilisateurActuel = nullptr;
     }
 
-    // VERIFIER SI UNE SESSION EST ACTIVE
     bool estConnecte() const {
         return utilisateurActuel != nullptr;
     }
 
-    // UTILISATEUR CONNECTE
     Users* getUtilisateurConnecte() const {
         return utilisateurActuel;
     }
 
-    // NOMBRE DE COMPTES
-    size_t nombreComptes() const {
+    std::size_t nombreComptes() const {
         return comptes.size();
+    }
+
+    // SAUVEGARDE DES COMPTES
+    std::vector<CompteSauvegarde> exporterComptes() const {
+
+        std::vector<CompteSauvegarde> resultat;
+
+        for (const auto& utilisateur : comptes) {
+            resultat.push_back({
+                utilisateur->getId(),
+                utilisateur->getLogin(),
+                utilisateur->getPasswordHash()
+            });
+        }
+
+        return resultat;
+    }
+
+    // CHARGEMENT DES COMPTES
+    void importerComptes(
+        const std::vector<CompteSauvegarde>& sauvegarde
+    ) {
+        std::vector<std::unique_ptr<Users>> nouveauxComptes;
+        std::set<int> ids;
+        std::set<std::string> logins;
+
+        int maximum = 0;
+
+        for (const auto& compte : sauvegarde) {
+
+            if (compte.id <= 0 ||
+                compte.id == INT_MAX ||
+                compte.login.find_first_not_of(" \t\r\n")
+                    == std::string::npos ||
+                !ids.insert(compte.id).second ||
+                !logins.insert(compte.login).second) {
+
+                throw std::runtime_error(
+                    "Compte JSON invalide ou duplique."
+                );
+            }
+
+            nouveauxComptes.push_back(
+                Users::depuisEmpreinte(
+                    compte.id,
+                    compte.login,
+                    compte.passwordHash
+                )
+            );
+
+            if (compte.id > maximum) {
+                maximum = compte.id;
+            }
+        }
+
+        deconnecter();
+        comptes.swap(nouveauxComptes);
+        prochainId = maximum + 1;
     }
 };

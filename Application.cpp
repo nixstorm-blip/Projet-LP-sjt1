@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -46,6 +47,7 @@ public:
 private:
     using Data = std::variant<std::nullptr_t, bool, double, std::string, Array, Object>;
     Data data;
+    
 
     static void appendUtf8(std::string& out, std::uint32_t code) {
         if (code <= 0x7f) out.push_back(static_cast<char>(code));
@@ -287,11 +289,9 @@ public:
     Array::const_iterator end() const { return std::get<Array>(data).end(); }
     bool isNull() const { return std::holds_alternative<std::nullptr_t>(data); }
     bool contient(const std::string& cle) const {
-    const auto* objet = std::get_if<Object>(&data);
-
-    return objet != nullptr &&
-           objet->find(cle) != objet->end();
-}
+        const auto* objet = std::get_if<Object>(&data);
+        return objet != nullptr && objet->find(cle) != objet->end();
+    }
     template<class T> T get() const {
         if constexpr (std::is_same_v<T, Json>) return *this;
         else if constexpr (std::is_same_v<T, std::string>) return std::get<std::string>(data);
@@ -322,8 +322,13 @@ public:
 
 class Application {
 private:
+    // 1. Authentification et fichiers de sauvegarde
     Authentification auth;
+    const std::string cheminComptes = "comptes.json";
+    const std::string cheminJson = "mediatheque.json";
+    bool chargementInvalide = false;
 
+    // 2. Donnees de la mediatheque
     // Les objets de référence restent vivants jusqu'à la destruction des bibliothèques.
     std::vector<std::unique_ptr<Personne>> personnes;
     std::vector<std::unique_ptr<Format>> formats;
@@ -337,9 +342,7 @@ private:
     std::map<int, std::string> nationalites;
     std::map<int, std::string> artistesAlbums;
     std::map<std::string, std::string> rolesCreateurs;
-    const std::string cheminJson = "mediatheque.json";
-    bool chargementInvalide = false;
-
+    // 3. Saisie dans le terminal
     static std::string lireTexte(const std::string& invite) {
         std::cout << invite;
         std::string texte;
@@ -347,64 +350,105 @@ private:
         return texte;
     }
 
-static std::string lireMotDePasse(const std::string& invite) {
+    static std::string lireMotDePasse(const std::string& invite) {
+        std::cout << invite << std::flush;
+        std::string mdp;
 
-    std::cout << invite << std::flush;
+        // Pour les tests avec une entree redirigee.
+        if (!isatty(STDIN_FILENO)) {
+            if (!std::getline(std::cin, mdp)) {
+                throw std::runtime_error("Fin de saisie.");
+            }
+            return mdp;
+        }
 
-    std::string mdp;
+        struct termios ancien;
+        if (tcgetattr(STDIN_FILENO, &ancien) != 0) {
+            throw std::runtime_error("Impossible de lire les parametres du terminal.");
+        }
 
-    // Si l'entree n'est pas un terminal (ex. test automatique)
-    if (!isatty(STDIN_FILENO)) {
-        if (!std::getline(std::cin, mdp)) {
+        struct termios nouveau = ancien;
+        nouveau.c_lflag &= ~ECHO;
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &nouveau) != 0) {
+            throw std::runtime_error("Impossible de masquer le mot de passe.");
+        }
+
+        bool lectureReussie = static_cast<bool>(std::getline(std::cin, mdp));
+        int restauration = tcsetattr(STDIN_FILENO, TCSANOW, &ancien);
+        std::cout << '\n';
+
+        if (restauration != 0) {
+            throw std::runtime_error("Impossible de restaurer le terminal.");
+        }
+        if (!lectureReussie) {
             throw std::runtime_error("Fin de saisie.");
         }
         return mdp;
     }
 
-    struct termios ancien;
+    // 4. Sauvegarde et chargement des comptes
+    void sauvegarderComptes() const {
+        Json root;
+        root["version"] = 1;
+        root["comptes"] = Json::array();
 
-    if (tcgetattr(STDIN_FILENO, &ancien) != 0) {
-        throw std::runtime_error("Impossible de lire les parametres du terminal.");
+        for (const auto& compte : auth.exporterComptes()) {
+            root["comptes"].push({
+                {"id", compte.id},
+                {"login", compte.login},
+                {"passwordHash", compte.passwordHash}
+            });
+        }
+
+        // Ecriture temporaire pour conserver l'ancien fichier en cas d'erreur.
+        const std::string temporaire = cheminComptes + ".tmp";
+        std::ofstream fichier(temporaire);
+        if (!fichier) {
+            throw std::runtime_error("Impossible de sauvegarder les comptes.");
+        }
+        std::filesystem::permissions(temporaire,
+            std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+        fichier << root.dump(2) << '\n';
+        fichier.close();
+        if (!fichier) {
+            throw std::runtime_error("Erreur d'ecriture des comptes.");
+        }
+        std::filesystem::rename(temporaire, cheminComptes);
     }
 
-    struct termios nouveau = ancien;
+    void chargerComptes() {
+        if (!std::filesystem::exists(cheminComptes)) {
+            return; // Premier lancement : aucun compte.
+        }
+        std::ifstream fichier(cheminComptes);
+        if (!fichier) {
+            throw std::runtime_error("Impossible de lire les comptes.");
+        }
 
-    // Desactiver l'affichage des caracteres
-    nouveau.c_lflag &= ~ECHO;
+        Json root;
+        fichier >> root;
+        if (!root.at("comptes").isArray()) {
+            throw std::runtime_error("Fichier de comptes invalide.");
+        }
 
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &nouveau) != 0) {
-        throw std::runtime_error("Impossible de masquer le mot de passe.");
+        std::vector<CompteSauvegarde> comptes;
+        for (const auto& compte : root.at("comptes")) {
+            comptes.push_back({
+                compte.at("id").get<int>(),
+                compte.at("login").get<std::string>(),
+                compte.at("passwordHash").get<std::string>()
+            });
+        }
+        auth.importerComptes(comptes);
     }
 
-    // Lire le mot de passe sans l'afficher
-    bool lectureReussie = static_cast<bool>(
-        std::getline(std::cin, mdp)
-    );
-
-    // Toujours reactiver l'affichage
-    int restauration = tcsetattr(STDIN_FILENO, TCSANOW, &ancien);
-
-    std::cout << '\n';
-
-    if (restauration != 0) {
-        throw std::runtime_error("Impossible de restaurer le terminal.");
-    }
-
-    if (!lectureReussie) {
-        throw std::runtime_error("Fin de saisie.");
-    }
-
-    return mdp;
-}
-
-
-    // Inscription / connexion avant l'acces a la mediatheque.
+    // 5. Inscription et connexion
     bool menuAuthentification() {
         while (true) {
             std::cout << "\n=== AUTHENTIFICATION ===\n"
                       << "1. Inscription\n"
                       << "2. Connexion\n"
-                        << "0. Quitter\n";
+                      << "0. Quitter\n";
 
             std::string choix;
             try {
@@ -419,7 +463,15 @@ static std::string lireMotDePasse(const std::string& invite) {
                 if (choix == "1") {
                     const std::string login = lireTexte("Login : ");
                     const std::string mdp = lireMotDePasse("Mot de passe : ");
+                    const auto anciensComptes = auth.exporterComptes();
                     if (auth.inscrire(login, mdp)) {
+                        try {
+                            sauvegarderComptes();
+                        } catch (...) {
+                            // Annuler l'inscription si la sauvegarde echoue.
+                            auth.importerComptes(anciensComptes);
+                            throw;
+                        }
                         std::cout << "Compte cree avec succes. Connectez-vous maintenant.\n";
                     } else {
                         std::cout << "Ce login existe deja.\n";
@@ -443,6 +495,7 @@ static std::string lireMotDePasse(const std::string& invite) {
             }
         }
     }
+    // 6. Fonctions utilitaires
     static int lireEntier(const std::string& invite, int min = std::numeric_limits<int>::min(), int max = std::numeric_limits<int>::max()) {
         while (true) {
             const std::string texte = lireTexte(invite);
@@ -488,6 +541,7 @@ static std::string lireMotDePasse(const std::string& invite) {
     }
 
     int prochainIdMedia() const { int max = 0; for (Media* m : tousLesMedias()) max = std::max(max, m->getId()); return max + 1; }
+    // 7. Gestion des medias
     static std::string typeMedia(Media* media) {
         if (dynamic_cast<Films*>(media)) return "Film";
         if (dynamic_cast<Serie*>(media)) return "Serie";
@@ -605,6 +659,7 @@ static std::string lireMotDePasse(const std::string& invite) {
             }
         }
     }
+    // 8. Gestion des collections et des associations
     void creerPersonne() {
         const int id = prochainId(personnes);
         const std::string nom = lireTexte("Nom : ");
@@ -713,6 +768,7 @@ static std::string lireMotDePasse(const std::string& invite) {
         for (const auto& x : personnes) { std::cout << x->getId() << " : " << x->getPrenom() << " " << x->getNom(); auto it = nationalites.find(x->getId()); if (it != nationalites.end()) std::cout << " (" << it->second << ")"; std::cout << "\n"; }
     }
 
+    // 9. Sauvegarde et chargement des medias (independants des comptes)
     Json versJson() const {
         Json root;
         root["version"] = 1;
@@ -763,16 +819,7 @@ static std::string lireMotDePasse(const std::string& invite) {
                 if (!root.at(key).isArray()) throw std::runtime_error("Le champ '" + key + "' doit être un tableau JSON.");
             }
 
-       
-
-
-
-// Charger les comptes sauvegardes dans le JSON
-Authentification nouveauxComptes;
-
-
-
-// Construire un nouvel état. À sa destruction, les médiathèques se
+            // Construire un nouvel état. À sa destruction, les médiathèques se
             // détachent avant le dépôt qui possède les médias; les autres objets
             // restent vivants pendant la destruction de ces médias.
             std::vector<std::unique_ptr<Personne>> newPeople;
@@ -855,7 +902,6 @@ Authentification nouveauxComptes;
             listes=std::move(newLists); franchises=std::move(newFranchises);
             depotMedias=std::move(newDepot); bibliotheques=std::move(newLibraries);
             nationalites=std::move(newNationalities); artistesAlbums=std::move(newArtists); rolesCreateurs=std::move(newRoles);
-            auth = std::move(nouveauxComptes);
             chargementInvalide=false;
             std::cout << "Chargement JSON réussi.\n";
         } catch (const std::exception& error) {
@@ -868,7 +914,9 @@ public:
     Application() : depotMedias(Parseur::chargerMediatheque(-1, "Dépôt interne", "Propriétaire des médias")) {
         assurerBibliothequePrincipale();
     }
+    // 10. Menu principal
     void executer() {
+        chargerComptes();
         charger();
         if (!menuAuthentification()) return;
 
@@ -899,16 +947,14 @@ public:
                 else if (choix == "13") afficherCollections();
                 else if (choix == "14") sauvegarder();
                 else if (choix == "15") charger();
-               else if (choix == "16") {
-                sauvegarder();
-                auth.deconnecter();
-
-                std::cout << "Deconnexion reussie.\n";
-
-                if (!menuAuthentification()) {
-                    return;
+                else if (choix == "16") {
+                    sauvegarder();
+                    auth.deconnecter();
+                    std::cout << "Deconnexion reussie.\n";
+                    if (!menuAuthentification()) {
+                        return;
+                    }
                 }
-             }
                 else std::cout << "Choix inconnu.\n";
             } catch (const std::exception& error) { std::cout << "Action impossible : " << error.what() << '\n'; }
         }
