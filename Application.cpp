@@ -325,7 +325,8 @@ private:
     // 1. Authentification et fichiers de sauvegarde
     Authentification auth;
     const std::string cheminComptes = "comptes.json";
-    const std::string cheminJson = "mediatheque.json";
+    // Le fichier de la médiathèque dépend de l'utilisateur connecté.
+    std::string cheminJson;
     bool chargementInvalide = false;
 
     // 2. Donnees de la mediatheque
@@ -480,6 +481,17 @@ private:
                     const std::string login = lireTexte("Login : ");
                     const std::string mdp = lireMotDePasse("Mot de passe : ");
                     if (auth.connecter(login, mdp)) {
+                        // Ne jamais conserver les données d'un autre compte en mémoire.
+                        viderMediatheque();
+                        cheminJson = "mediatheque_" +
+                            std::to_string(auth.getUtilisateurConnecte()->getId()) + ".json";
+                        if (!charger()) {
+                            auth.deconnecter();
+                            cheminJson.clear();
+                            std::cout << "Connexion annulée : impossible de charger la médiathèque personnelle.\n";
+                            continue;
+                        }
+                        assurerBibliothequePrincipale();
                         std::cout << "Connexion reussie. Bienvenue "
                                   << auth.getUtilisateurConnecte()->getLogin() << " !\n";
                         return true;
@@ -490,6 +502,8 @@ private:
                 }
             } catch (const std::exception& error) {
                 // Une entree fermee interrompt normalement l'application.
+                auth.deconnecter();
+                cheminJson.clear();
                 if (!std::cin.good()) return false;
                 std::cout << "Erreur : " << error.what() << '\n';
             }
@@ -535,6 +549,26 @@ private:
     Genre* trouverGenre(int id) const { for (const auto& p : genres) if (p->getId() == id) return p.get(); return nullptr; }
     Format* trouverFormat(int id) const { for (const auto& p : formats) if (p->getId() == id) return p.get(); return nullptr; }
     Mediatheque* trouverBibliotheque(int id) const { for (const auto& p : bibliotheques) if (p->getId() == id) return p.get(); return nullptr; }
+
+    // Libérer les liens et les objets dans le bon ordre avant de changer de compte.
+    void viderMediatheque() {
+        for (Media* media : tousLesMedias()) {
+            for (auto& liste : listes) liste->retirerMedia(media);
+            for (auto& franchise : franchises) franchise->retirerMedia(media);
+        }
+        bibliotheques.clear();
+        depotMedias.reset();
+        personnes.clear();
+        formats.clear();
+        genres.clear();
+        listes.clear();
+        franchises.clear();
+        nationalites.clear();
+        artistesAlbums.clear();
+        rolesCreateurs.clear();
+        depotMedias = Parseur::chargerMediatheque(-1, "Dépôt interne", "Propriétaire des médias");
+        chargementInvalide = false;
+    }
 
     void assurerBibliothequePrincipale() {
         if (bibliotheques.empty()) bibliotheques.push_back(Parseur::chargerMediatheque(prochainId(bibliotheques), "Ma médiathèque", "Collection principale"));
@@ -593,7 +627,9 @@ private:
         const int id = prochainIdMedia();
         const std::string titre = lireTexte("Titre : ");
         if (titre.empty()) { std::cout << "Le titre ne peut pas être vide.\n"; return; }
-        const std::string annee = lireTexte("Année : ");
+        const std::string annee = std::to_string(
+         lireEntier("Année : ", 1000, 2100)
+);
         const int note = lireEntier("Note (0-10) : ", 0, 10);
         const std::string commentaire = lireTexte("Commentaire : ");
         const bool possede = lireOuiNon("Possédé");
@@ -646,7 +682,7 @@ private:
             const int choix = lireEntier("Modification : ", 0, 6);
             if (choix == 0) return;
             if (choix == 1) { std::string v = lireTexte("Nouveau titre : "); if (!v.empty()) media->setTitre(v); }
-            else if (choix == 2) media->setAnnee(lireTexte("Nouvelle année : "));
+            else if (choix == 2) media->setAnnee(std::to_string(lireEntier("Nouvelle année : ", 1000, 2000)));
             else if (choix == 3) media->setNote(lireEntier("Nouvelle note (0-10) : ", 0, 10));
             else if (choix == 4) media->setCommentaire(lireTexte("Nouveau commentaire : "));
             else if (choix == 5) media->setPossede(lireOuiNon("Possédé"));
@@ -796,21 +832,35 @@ private:
         }
         return root;
     }
-    void sauvegarder() const {
+    bool sauvegarder() const {
+        if (!auth.estConnecte() || cheminJson.empty()) return false;
         if (chargementInvalide) {
             std::cerr << "Sauvegarde refusée : un chargement JSON a échoué. Répare ou déplace le fichier avant de le remplacer.\n";
-            return;
+            return false;
         }
         try {
             const std::string temporaire = cheminJson + ".tmp";
             { std::ofstream file(temporaire, std::ios::binary | std::ios::trunc); if (!file) throw std::runtime_error("Impossible d'ouvrir le fichier temporaire."); file << versJson().dump(2) << '\n'; file.flush(); if (!file) throw std::runtime_error("Échec d'écriture du JSON."); }
             if (std::rename(temporaire.c_str(), cheminJson.c_str()) != 0) { std::remove(temporaire.c_str()); throw std::runtime_error("Impossible de remplacer " + cheminJson); }
             std::cout << "Sauvegarde réussie dans " << cheminJson << ".\n";
-        } catch (const std::exception& error) { std::cerr << "Erreur de sauvegarde : " << error.what() << '\n'; }
+            return true;
+        } catch (const std::exception& error) { std::cerr << "Erreur de sauvegarde : " << error.what() << '\n'; return false; }
     }
-    void charger() {
+    bool charger() {
+        if (!auth.estConnecte() || cheminJson.empty()) return false;
         std::ifstream file(cheminJson, std::ios::binary);
-        if (!file) { chargementInvalide = false; std::cout << "Aucun fichier " << cheminJson << " : démarrage avec une collection vide.\n"; return; }
+        if (!file) {
+            std::error_code erreur;
+            const bool existe = std::filesystem::exists(cheminJson, erreur);
+            if (existe || erreur) {
+                chargementInvalide = true;
+                std::cerr << "Impossible d'ouvrir " << cheminJson << ".\n";
+                return false;
+            }
+            chargementInvalide = false;
+            std::cout << "Aucun fichier " << cheminJson << " : collection en mémoire conservée.\n";
+            return true;
+        }
         try {
             Json root; file >> root;
             if (!root.isObject() || root.at("version").get<int>() != 1) throw std::runtime_error("Format ou version JSON non pris en charge.");
@@ -904,9 +954,11 @@ private:
             nationalites=std::move(newNationalities); artistesAlbums=std::move(newArtists); rolesCreateurs=std::move(newRoles);
             chargementInvalide=false;
             std::cout << "Chargement JSON réussi.\n";
+            return true;
         } catch (const std::exception& error) {
             chargementInvalide=true;
             std::cerr << "Chargement annulé, données en mémoire conservées : " << error.what() << '\n';
+            return false;
         }
     }
     void filtrer() const;
@@ -917,7 +969,6 @@ public:
     // 10. Menu principal
     void executer() {
         chargerComptes();
-        charger();
         if (!menuAuthentification()) return;
 
         while (true) {
@@ -948,8 +999,13 @@ public:
                 else if (choix == "14") sauvegarder();
                 else if (choix == "15") charger();
                 else if (choix == "16") {
-                    sauvegarder();
+                    if (!sauvegarder()) {
+                        std::cout << "Déconnexion annulée : la sauvegarde a échoué.\n";
+                        continue;
+                    }
                     auth.deconnecter();
+                    cheminJson.clear();
+                    viderMediatheque();
                     std::cout << "Deconnexion reussie.\n";
                     if (!menuAuthentification()) {
                         return;
