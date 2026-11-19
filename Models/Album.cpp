@@ -12,12 +12,6 @@ public:
 	~Album() override = default;
 
 	string afficher() override {
-		return "Album [id=" + to_string(getId())
-			+ ", titre=" + getTitre()
-			+ ", annee=" + getAnnee()
-			+ ", note=" + to_string(getNote())
-			+ ", commentaire=" + getCommentaire()
-			+ ", possede=" + (getPossede() ? "oui" : "non")
-			+ "]";
+		return afficherAttributsCommuns("Album");
 	}
 };
