@@ -38,14 +38,8 @@ public:
     }
 
     string afficher() override {
-        return "Serie [id=" + to_string(getId())
-            + ", titre=" + getTitre()
-            + ", annee=" + getAnnee()
-            + ", note=" + to_string(getNote())
-            + ", commentaire=" + getCommentaire()
-            + ", possede=" + (getPossede() ? "oui" : "non")
-            + ", nombreSaisons=" + to_string(nombreSaisons)
-            + ", nombreEpisodes=" + to_string(nombreEpisodes)
-            + "]";
+        return afficherAttributsCommuns("Série")
+            + "\nSaisons      : " + to_string(nombreSaisons)
+            + "\nÉpisodes     : " + to_string(nombreEpisodes);
     }
 };

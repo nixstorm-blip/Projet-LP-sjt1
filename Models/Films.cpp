@@ -33,14 +33,8 @@ public:
     }
 
     string afficher() override {
-        return "Films [id=" + to_string(getId())
-            + ", titre=" + getTitre()
-            + ", annee=" + getAnnee()
-            + ", note=" + to_string(getNote())
-            + ", commentaire=" + getCommentaire()
-            + ", possede=" + (getPossede() ? "oui" : "non")
-            + ", duree=" + to_string(duree)
-            + ", isan=" + isan
-            + "]";
+        return afficherAttributsCommuns("Film")
+            + "\nDurée        : " + to_string(duree) + " min"
+            + "\nISAN         : " + isan;
     }
 };

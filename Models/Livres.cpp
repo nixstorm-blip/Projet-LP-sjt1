@@ -34,14 +34,8 @@ public:
 	}
 
 	string afficher() override {
-		return "Livre [id=" + to_string(getId())
-			+ ", titre=" + getTitre()
-			+ ", annee=" + getAnnee()
-			+ ", note=" + to_string(getNote())
-			+ ", commentaire=" + getCommentaire()
-			+ ", possede=" + (getPossede() ? "oui" : "non")
-			+ ", edition=" + edition
-			+ ", isbn=" + isbn
-			+ "]";
+		return afficherAttributsCommuns("Livre")
+			+ "\nÉdition      : " + edition
+			+ "\nISBN         : " + isbn;
 	}
 };

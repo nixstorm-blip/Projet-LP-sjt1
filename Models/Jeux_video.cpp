@@ -32,14 +32,8 @@ public:
 	}
 
 	string afficher() override {
-		return "JeuVideo [id=" + to_string(getId())
-			+ ", titre=" + getTitre()
-			+ ", annee=" + getAnnee()
-			+ ", note=" + to_string(getNote())
-			+ ", commentaire=" + getCommentaire()
-			+ ", possede=" + (getPossede() ? "oui" : "non")
-			+ ", editeur=" + editeur
-			+ ", plateforme=" + plateforme
-			+ "]";
+		return afficherAttributsCommuns("Jeu vidéo")
+			+ "\nÉditeur      : " + editeur
+			+ "\nPlateforme   : " + plateforme;
 	}
 };
