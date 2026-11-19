@@ -196,19 +196,25 @@ public : void retirerCreateur(Personne* personne){
     personne->retirerMedia(this);
 }
 
-public : virtual string afficher(){
-    return "Media [id=" + to_string(this->id)
-        + ", titre=" + this->titre
-        + ", annee=" + this->annee
-        + ", note=" + to_string(this->note)
-        + ", commentaire=" + this->commentaire
-        + ", possede=" + (this->possede ? "oui" : "non")
-        + ", format=" + (this->format != nullptr ? this->format->getNomFormat() : "aucun")
-        + ", genre=" + (this->genre != nullptr ? this->genre->getLibelle() : "aucun")
-        + ", nbCreateurs=" + to_string(this->createurs.size())
-        + ", nbTags=" + to_string(this->tags.size())
-        + ", nbMediatheques=" + to_string(this->mediatheques.size())
-        + "]";
-}
+protected:
+    string afficherAttributsCommuns(const string& type) const {
+        return "Type         : " + type
+            + "\nID           : " + to_string(id)
+            + "\nTitre        : " + titre
+            + "\nAnnée        : " + annee
+            + "\nNote         : " + to_string(note) + "/10"
+            + "\nCommentaire  : " + commentaire
+            + "\nPossédé      : " + (possede ? "Oui" : "Non");
+    }
+
+public:
+    virtual string afficher() {
+        return afficherAttributsCommuns("Média")
+            + "\nFormat       : " + (format ? format->getNomFormat() : "Aucun")
+            + "\nGenre        : " + (genre ? genre->getLibelle() : "Aucun")
+            + "\nCréateurs    : " + to_string(createurs.size())
+            + "\nTags         : " + to_string(tags.size())
+            + "\nMédiathèques : " + to_string(mediatheques.size());
+    }
 
 };

@@ -585,32 +585,44 @@ private:
         return "Media";
     }
     std::string affichageEtendu(Media* media) const {
-        std::string resultat = media->afficher();
+        const std::string separateur = "==================================";
+        std::string resultat = separateur + "\n" + media->afficher();
         if (dynamic_cast<Album*>(media)) {
-            auto it = artistesAlbums.find(media->getId());
-            if (it != artistesAlbums.end()) resultat += ", artiste=" + it->second;
+            const auto it = artistesAlbums.find(media->getId());
+            resultat += "\nArtiste      : " + (it != artistesAlbums.end() ? it->second : "Aucun");
         }
-        resultat += "\n  Créateurs : ";
-        if (media->getCreateurs().empty()) resultat += "aucun";
+
+        std::string valeurs;
+        const auto ajouterValeur = [&valeurs](const std::string& valeur) {
+            if (!valeurs.empty()) valeurs += "; ";
+            valeurs += valeur;
+        };
         for (Personne* personne : media->getCreateurs()) {
             if (personne) {
-                resultat += personne->getPrenom() + " " + personne->getNom();
+                std::string nom = personne->getPrenom() + " " + personne->getNom();
                 const auto role = rolesCreateurs.find(cleRole(media->getId(), personne->getId()));
-                if (role != rolesCreateurs.end() && !role->second.empty()) resultat += " (" + role->second + ")";
-                resultat += "; ";
+                if (role != rolesCreateurs.end() && !role->second.empty()) nom += " (" + role->second + ")";
+                ajouterValeur(nom);
             }
         }
-        resultat += "\n  Tags : ";
-        if (media->getTags().empty()) resultat += "aucun";
-        for (Tag* tag : media->getTags()) if (tag) resultat += tag->getNom() + "; ";
-        resultat += "\n  Listes : ";
-        bool trouve = false;
-        for (const auto& liste : listes) for (Media* m : liste->getMedias()) if (m == media) { resultat += liste->getNom() + "; "; trouve = true; }
-        if (!trouve) resultat += "aucune";
-        resultat += "\n  Franchises : ";
-        trouve = false;
-        for (const auto& franchise : franchises) for (Media* m : franchise->getMedias()) if (m == media) { resultat += franchise->getNom() + "; "; trouve = true; }
-        if (!trouve) resultat += "aucune";
+        resultat += "\nCréateurs    : " + (valeurs.empty() ? "Aucun" : valeurs);
+
+        valeurs.clear();
+        for (Tag* tag : media->getTags()) if (tag) ajouterValeur(tag->getNom());
+        resultat += "\nTags         : " + (valeurs.empty() ? "Aucun" : valeurs);
+
+        valeurs.clear();
+        for (const auto& liste : listes) {
+            for (Media* m : liste->getMedias()) if (m == media) ajouterValeur(liste->getNom());
+        }
+        resultat += "\nListes       : " + (valeurs.empty() ? "Aucune" : valeurs);
+
+        valeurs.clear();
+        for (const auto& franchise : franchises) {
+            for (Media* m : franchise->getMedias()) if (m == media) ajouterValeur(franchise->getNom());
+        }
+        resultat += "\nFranchises   : " + (valeurs.empty() ? "Aucune" : valeurs);
+        resultat += "\n" + separateur;
         return resultat;
     }
 
@@ -973,11 +985,23 @@ public:
 
         while (true) {
             std::cout << "\n=== MÉDIATHÈQUE PERSONNELLE ===\n"
-                      << "1 Afficher médias  2 Ajouter média  3 Modifier média  4 Supprimer média\n"
-                      << "5 Filtrer/rechercher  6 Créer personne  7 Créer liste  8 Créer franchise\n"
-                      << "9 Créer genre  10 Créer format  11 Créer médiathèque  12 Associer\n"
-                      << "13 Afficher collections  14 Sauvegarder  15 Recharger\n"
-                      << "16 Deconnexion  0 Quitter\n";
+                      << "1. Afficher médias\n"
+                      << "2. Ajouter média\n"
+                      << "3. Modifier média\n"
+                      << "4. Supprimer média\n"
+                      << "5. Filtrer/rechercher\n"
+                      << "6. Créer personne\n"
+                      << "7. Créer liste\n"
+                      << "8. Créer franchise\n"
+                      << "9. Créer genre\n"
+                      << "10. Créer format\n"
+                      << "11. Créer médiathèque\n"
+                      << "12. Associer\n"
+                      << "13. Afficher collections\n"
+                      << "14. Sauvegarder\n"
+                      << "15. Recharger\n"
+                      << "16. Déconnexion\n"
+                      << "0. Quitter\n\n";
             std::string choix;
             try { choix = lireTexte("Choix : "); }
             catch (const std::exception&) { sauvegarder(); return; }
